@@ -1,0 +1,53 @@
+{
+  "name": "the-akpan-startup-template",
+  "version": "0.0.1",
+  "description": "Please set",
+  "main": "dist/index.js",
+  "repository": "Please set",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "run-s clean compile",
+    "clean": "rimraf ./dist",
+    "compile": "tsc",
+    "dev": "run-s migrate-up watch",
+    "makemigrations": "./node_modules/.bin/migrate --migrations-dir ./src/migrations --es6 true create",
+    "migrate-up": "tsx ./node_modules/.bin/migrate --autosync true --es6 true --migrations-dir ./src/migrations up",
+    "format": "pretty-quick --loglevel=warn --cache --write ./src",
+    "lint": "npx eslint --ext .js,.ts src/",
+    "lint:fix": "npx eslint --fix --ext .js,.ts src/",
+    "prestart": "migrate-up",
+    "start": "node dist/index.js",
+    "watch": "tsx watch src/index.ts"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.4",
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^4.17.21",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20.11.5",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "migrate-mongoose-typescript": "^3.3.4",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.2.4",
+    "pretty-quick": "^4.0.0",
+    "rimraf": "^5.0.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.0",
+    "express": "^4.18.2",
+    "http-status-codes": "^2.3.0",
+    "joi": "^17.12.0",
+    "mongoose": "^8.1.0",
+    "morgan": "^1.10.0",
+    "winston": "^3.11.0",
+    "znv": "^0.4.0",
+    "zod": "^3.22.4"
+  }
+}
