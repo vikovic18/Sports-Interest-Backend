@@ -23,6 +23,22 @@ services:
       - RABBITMQ_DEFAULT_USER=root
       - RABBITMQ_DEFAULT_PASS=example
 
+  api:
+    container_name: node_api
+    restart: on-failure
+    build: .
+    volumes:
+      - ./src:/app/src
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env 
+    command: >
+      sh -c "yarn dev"
+    depends_on:
+      - mongodb
+      - rabbitmq
+
 volumes:
   mongodata:
   rabbitmqdata:
