@@ -2,10 +2,15 @@ import type { NextFunction, Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { createRequestError } from "../utils/error.util";
 import * as userService from "../services/user.service";
+import * as otpService from "../services/otp.service";
 import * as hashUtil from "../utils/hash.util";
+import * as mailService from "../services/mail.service";
+import { OtpType } from "utils/types.util";
+import logger from "utils/logger.util";
+
 
 export const handleRegisterUser =
-  ({ createUser = userService.create, hashPassword = hashUtil.hash } = {}) =>
+  ({ createUser = userService.create, hashPassword = hashUtil.hash, generateToken = otpService.CreateOTP, sendVerificationEmail =  mailService.SendMail} = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { email, firstName, lastName, password } = req.body;
@@ -16,7 +21,54 @@ export const handleRegisterUser =
           password: await hashPassword(password),
         });
 
+
+
         // todo: send user verification mail
+
+        logger.debug(`signup: ${user.email} creating OTP`);
+        const otp = await generateToken({
+          email: user.email,
+          channel: OtpType.SIGNUP
+        });
+
+        logger.debug(`signup: ${user.email} sending verification mail`);
+
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${otp.token}`;
+
+        // const mailOptions = {
+        //   from: process.env.EMAIL_USER,
+        //   to: userEmail,
+        //   subject: "Verify Your Email",
+        //   html: `<p>Please click on the following link to verify your email:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p>`,
+        // };
+
+        // const mail = await CreateMail({
+        //   email: data.email,
+        //   subject: "GSASConnect OTP",
+        //   template: "otp",
+        //   context: {
+        //     code,
+        //     expiresAt: expires
+        //   }
+        // });
+        // log.debug(`CreateOtp: ${data.email} mail created with status ${mail.status}`);
+
+        // if (mail.status !== MailStatus.SENT) {
+        //   throw new Error("Error sending OTP mail");
+        // }
+
+  
+        await sendVerificationEmail({
+          email: user.email,
+          subject: "Verify Your Email",
+          context: {},
+          template: `<p>Please click on the following link to verify your email:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p>`,
+        });
+        // logger.debug(`CreateOtp: ${user.email} mail created with status ${mail.status}`);
+
+        // if (mail.status !== MailStatus.SENT) {
+        //   throw new Error("Error sending OTP mail");
+        // }
 
         res.json({
           status: true,

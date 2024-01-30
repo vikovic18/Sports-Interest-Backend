@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 import bcrypt from "bcrypt";
 
 import { OtpType } from "../utils/types.util";
-import type { IOtp } from "../interface/otp.interface";
+import type { IOtp } from "../interface";
 
 const OtpSchema = new Schema<IOtp>(
   {
