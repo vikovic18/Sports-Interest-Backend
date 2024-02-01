@@ -6,6 +6,7 @@ import logger from "./utils/logger.util";
 import connectToDb from "./config/database.config";
 import registerConsumers from "./queues";
 import subscriber from "./queues/queue";
+import mailConfig from "config/mail.config";
 
 process.on("uncaughtException", (reason, promise) => {
   logger.error(`Unhandled Exception at: ${promise} reason: ${reason}`);
@@ -25,6 +26,7 @@ const startApplicationDependencies = async () => {
     await connectToDb();
 
     await registerConsumers();
+    await mailConfig();
   } catch (error) {
     const errMsg = (error as Error).message;
     logger.error(`Server could not start with error: ${errMsg}`);

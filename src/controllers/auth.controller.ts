@@ -33,45 +33,20 @@ export const handleRegisterUser =
 
         logger.debug(`signup: ${user.email} sending verification mail`);
 
-        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${otp.token}`;
+        const verificationUrl = `${process.env.FRONTEND_ENV}/verify-email?token=${otp.token}`;
 
-        // const mailOptions = {
-        //   from: process.env.EMAIL_USER,
-        //   to: userEmail,
-        //   subject: "Verify Your Email",
-        //   html: `<p>Please click on the following link to verify your email:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p>`,
-        // };
-
-        // const mail = await CreateMail({
-        //   email: data.email,
-        //   subject: "GSASConnect OTP",
-        //   template: "otp",
-        //   context: {
-        //     code,
-        //     expiresAt: expires
-        //   }
-        // });
-        // log.debug(`CreateOtp: ${data.email} mail created with status ${mail.status}`);
-
-        // if (mail.status !== MailStatus.SENT) {
-        //   throw new Error("Error sending OTP mail");
-        // }
-
-  
         await sendVerificationEmail({
           email: user.email,
           subject: "Verify Your Email",
-          context: {},
-          template: `<p>Please click on the following link to verify your email:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p>`,
+          context: {
+            firstName: user.firstName,
+            verificationUrl
+          },
+          template: "verify-email",
         });
-        // logger.debug(`CreateOtp: ${user.email} mail created with status ${mail.status}`);
-
-        // if (mail.status !== MailStatus.SENT) {
-        //   throw new Error("Error sending OTP mail");
-        // }
 
         res.json({
-          status: true,
+          status: StatusCodes.CREATED,
           message: "Please check your email for a verification link",
           data: {
             user: {
@@ -82,18 +57,17 @@ export const handleRegisterUser =
             },
           },
         });
-      } catch (error) {
+      } 
+      catch (error) {
         const errMap: Record<string, StatusCodes> = {
           DUPLICATE_EMAIL_ERROR: StatusCodes.CONFLICT,
         };
-
-        next(
-          createRequestError(
-            (error as Error).message || "Unable to register user",
-            (error as Error).name,
-            errMap[(error as Error).name]
-          )
-        );
+        const errorCode = "DUPLICATE_EMAIL_ERROR";
+        const errorMessage = (error as Error).message || "Unable to register user";
+      
+        const statusCode = errMap[errorCode] || StatusCodes.INTERNAL_SERVER_ERROR;
+      
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
       }
     };
 

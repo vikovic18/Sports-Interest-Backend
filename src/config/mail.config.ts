@@ -1,11 +1,13 @@
 import hbs from "nodemailer-express-handlebars";
-import nodemailer from "nodemailer";
+import nodemailer, { Transporter } from "nodemailer";
 import path from "path";
 import smtp from "nodemailer-smtp-transport";
 
-const mailConfig = async (): Promise<nodemailer.Transporter> => {
+let transporter: Transporter | null = null;
+
+const createTransporter = async () => {
   console.log("getMailTransporter: creating transporter");
-  const transporter = nodemailer.createTransport(
+  transporter = nodemailer.createTransport(
     smtp({
       host: process.env.SMTP_HOST as string,
       port: parseInt(process.env.SMTP_PORT as string),
@@ -39,10 +41,15 @@ const mailConfig = async (): Promise<nodemailer.Transporter> => {
 
   transporter.use("compile", hbs(options));
   console.log("Mail server is ready");
+};
 
+export const getTransporter = async () => {
+  if (!transporter) {
+    await createTransporter();
+  }
   return transporter;
 };
 
-export default mailConfig;
+export default getTransporter;
 
 

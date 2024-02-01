@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 
 import { OtpType } from "../utils/types.util";
 import type { IOtp } from "../interface";
