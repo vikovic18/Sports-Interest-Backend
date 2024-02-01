@@ -20,3 +20,9 @@ export const getByEmail = async (email: string, { User = UserModel } = {}) => {
   const user = await User.findOne({ email }).orFail(error);
   return user.toObject();
 };
+
+export const getById = async (id: string, { User = UserModel } = {}) => {
+  const error = createServiceError("", "EMAIL_NOT_FOUND_ERROR");
+  const user = await User.findById(id).orFail(error);
+  return user.toObject();
+};
