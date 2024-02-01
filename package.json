@@ -10,7 +10,7 @@
     "build": "run-s clean compile",
     "clean": "rimraf ./dist",
     "compile": "tsc",
-    "dev": "run-s watch",
+    "dev": "run-s migrate-up watch",
     "makemigrations": "./node_modules/.bin/migrate --migrations-dir ./src/migrations --es6 true create",
     "migrate-up": "tsx ./node_modules/.bin/migrate --autosync true --es6 true --migrations-dir ./src/migrations up",
     "format": "pretty-quick --loglevel=warn --cache --write ./src",
