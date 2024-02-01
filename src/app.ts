@@ -1,13 +1,14 @@
 import express from "express";
+import cors from "cors";
 import morgan from "morgan";
 import logger from "./utils/logger.util";
 import router from "./routes";
-import errorHandlerMiddleware from "utils/error.util";
-
+import * as errorMiddleware from "./middlewares/error.middleware";
 
 const app = express();
 
 app.use(
+  cors(),
   express.json({ limit: "10mb" }),
   express.urlencoded({ extended: true }),
   morgan("combined", {
@@ -16,12 +17,12 @@ app.use(
         logger.info(message.trim());
       },
     },
-  }),
+  })
 );
 
 app.use("/api", router);
 
-app.use(errorHandlerMiddleware);
-
+app.use(errorMiddleware.handleNotFound);
+app.use(errorMiddleware.handleError);
 
 export default app;

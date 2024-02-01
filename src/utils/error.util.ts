@@ -1,73 +1,38 @@
-import { StatusCodes } from "http-status-codes";
-import { NextFunction, Request, Response } from "express";
+import { StatusCodes, getReasonPhrase } from "http-status-codes";
 
 class ServiceError extends Error {
   constructor(
     message: string,
-    private readonly label: `${string}_ERROR`
+    public readonly name: `${string}_ERROR`,
   ) {
     super(message);
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
-class RequestError extends Error {
+export class RequestError extends Error {
   constructor(
     message: string,
-    private readonly label: string,
-    private readonly statusCode: StatusCodes
+    public readonly name: string,
+    public readonly statusCode: StatusCodes,
   ) {
     super(message);
-  }
-
-  public getStatusCode() {
-    return this.statusCode;
-  }
-
-  public getLabel() {
-    return this.label;
+    const phraseName =
+      this.statusCode &&
+      getReasonPhrase(this.statusCode).replace(/\s/g, "_").toUpperCase();
+    this.name = `${phraseName || "UNKNOWN_ERROR"}_${this.name}`;
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
-export const createServiceError = (
-  message: string,
-  label: `${string}_ERROR`
-) => {
-  return new ServiceError(message, label);
+export const createServiceError = (message: string, name: `${string}_ERROR`) => {
+  return new ServiceError(message, name);
 };
 
 export const createRequestError = (
   message: string,
   name: string,
-  statusCode?: StatusCodes
+  statusCode?: StatusCodes,
 ) => {
-  return new RequestError(
-    message,
-    name,
-    statusCode || StatusCodes.INTERNAL_SERVER_ERROR
-  );
+  return new RequestError(message, name, statusCode || StatusCodes.INTERNAL_SERVER_ERROR);
 };
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const errorHandlerMiddleware = (err: unknown, req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof RequestError) {
-    return res.status(err.getStatusCode()).json({
-      status: err.getStatusCode(),
-      error: err.message,
-      label: err.getLabel(),
-    });
-  } else if (err instanceof ServiceError) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      status: false,
-      error: err.message,
-    });
-  }
-
-  // Generic error handling
-  console.error(err);  // Log the error for debugging purposes
-  return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-    status: false,
-    error: "Internal Server Error",
-  });
-};
-
-export default errorHandlerMiddleware;

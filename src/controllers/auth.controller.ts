@@ -8,9 +8,13 @@ import * as mailService from "../services/mail.service";
 import { OtpType } from "utils/types.util";
 import logger from "utils/logger.util";
 
-
 export const handleRegisterUser =
-  ({ createUser = userService.create, hashPassword = hashUtil.hash, generateToken = otpService.CreateOTP, sendVerificationEmail =  mailService.SendMail} = {}) =>
+  ({
+    createUser = userService.create,
+    hashPassword = hashUtil.hash,
+    generateToken = otpService.CreateOTP,
+    sendVerificationEmail = mailService.SendMail,
+  } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { email, firstName, lastName, password } = req.body;
@@ -21,14 +25,12 @@ export const handleRegisterUser =
           password: await hashPassword(password),
         });
 
-
-
         // todo: send user verification mail
 
         logger.debug(`signup: ${user.email} creating OTP`);
         const otp = await generateToken({
           email: user.email,
-          channel: OtpType.SIGNUP
+          channel: OtpType.SIGNUP,
         });
 
         logger.debug(`signup: ${user.email} sending verification mail`);
@@ -40,7 +42,7 @@ export const handleRegisterUser =
           subject: "Verify Your Email",
           context: {
             firstName: user.firstName,
-            verificationUrl
+            verificationUrl,
           },
           template: "verify-email",
         });
@@ -57,22 +59,25 @@ export const handleRegisterUser =
             },
           },
         });
-      } 
-      catch (error) {
+      } catch (error) {
         const errMap: Record<string, StatusCodes> = {
           DUPLICATE_EMAIL_ERROR: StatusCodes.CONFLICT,
         };
         const errorCode = "DUPLICATE_EMAIL_ERROR";
-        const errorMessage = (error as Error).message || "Unable to register user";
-      
+        const errorMessage =
+        (error as Error).message || "Unable to register user";
+
         const statusCode = errMap[errorCode] || StatusCodes.INTERNAL_SERVER_ERROR;
-      
+
         next(createRequestError(errorMessage, (error as Error).name, statusCode));
       }
     };
 
 export const handleLoginUser =
-  ({ getUser = userService.getByEmail, ensurePasswordMatches = hashUtil.compare } = {}) =>
+  ({
+    getUser = userService.getByEmail,
+    ensurePasswordMatches = hashUtil.compare,
+  } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { email, password: passwordIn } = req.body;
@@ -91,8 +96,8 @@ export const handleLoginUser =
               firstName: user.firstName,
               lastName: user.lastName,
               createdAt: user.createdAt,
-            }
-          }
+            },
+          },
         });
       } catch (error) {
         const errMap: Record<string, StatusCodes> = {

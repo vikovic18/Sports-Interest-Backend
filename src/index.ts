@@ -24,7 +24,6 @@ const server = http.createServer(app);
 const startApplicationDependencies = async () => {
   try {
     await connectToDb();
-
     await registerConsumers();
     await mailConfig();
   } catch (error) {
