@@ -2,10 +2,19 @@ import type { NextFunction, Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { createRequestError } from "../utils/error.util";
 import * as userService from "../services/user.service";
+import * as otpService from "../services/otp.service";
 import * as hashUtil from "../utils/hash.util";
+import * as mailService from "../services/mail.service";
+import { OtpType } from "utils/types.util";
+import logger from "utils/logger.util";
 
 export const handleRegisterUser =
-  ({ createUser = userService.create, hashPassword = hashUtil.hash } = {}) =>
+  ({
+    createUser = userService.create,
+    hashPassword = hashUtil.hash,
+    generateToken = otpService.CreateOTP,
+    sendVerificationEmail = mailService.SendMail,
+  } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { email, firstName, lastName, password } = req.body;
@@ -18,8 +27,28 @@ export const handleRegisterUser =
 
         // todo: send user verification mail
 
+        logger.debug(`signup: ${user.email} creating OTP`);
+        const otp = await generateToken({
+          email: user.email,
+          channel: OtpType.SIGNUP,
+        });
+
+        logger.debug(`signup: ${user.email} sending verification mail`);
+
+        const verificationUrl = `${process.env.FRONTEND_ENV}/verify-email?token=${otp.token}`;
+
+        await sendVerificationEmail({
+          email: user.email,
+          subject: "Verify Your Email",
+          context: {
+            firstName: user.firstName,
+            verificationUrl,
+          },
+          template: "verify-email",
+        });
+
         res.json({
-          status: true,
+          status: StatusCodes.CREATED,
           message: "Please check your email for a verification link",
           data: {
             user: {
@@ -34,19 +63,21 @@ export const handleRegisterUser =
         const errMap: Record<string, StatusCodes> = {
           DUPLICATE_EMAIL_ERROR: StatusCodes.CONFLICT,
         };
+        const errorCode = "DUPLICATE_EMAIL_ERROR";
+        const errorMessage =
+        (error as Error).message || "Unable to register user";
 
-        next(
-          createRequestError(
-            (error as Error).message || "Unable to register user",
-            (error as Error).name,
-            errMap[(error as Error).name]
-          )
-        );
+        const statusCode = errMap[errorCode] || StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
       }
     };
 
 export const handleLoginUser =
-  ({ getUser = userService.getByEmail, ensurePasswordMatches = hashUtil.compare } = {}) =>
+  ({
+    getUser = userService.getByEmail,
+    ensurePasswordMatches = hashUtil.compare,
+  } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { email, password: passwordIn } = req.body;
@@ -65,8 +96,8 @@ export const handleLoginUser =
               firstName: user.firstName,
               lastName: user.lastName,
               createdAt: user.createdAt,
-            }
-          }
+            },
+          },
         });
       } catch (error) {
         const errMap: Record<string, StatusCodes> = {
