@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { IUserBase } from "../interface/user.interface";
 import UserModel from "../models/user.model";
 import { createServiceError } from "../utils/error.util";
@@ -21,8 +22,15 @@ export const getByEmail = async (email: string, { User = UserModel } = {}) => {
   return user.toObject();
 };
 
-export const getById = async (id: string, { User = UserModel } = {}) => {
-  const error = createServiceError("", "EMAIL_NOT_FOUND_ERROR");
+export const getById = async (id: Types.ObjectId, { User = UserModel } = {}) => {
+  const error = createServiceError("", "USER_NOT_FOUND_ERROR");
   const user = await User.findById(id).orFail(error);
   return user.toObject();
 };
+
+export const update = async (data: Record<string, unknown>, { User = UserModel } = {}) => {
+  const error = createServiceError("", "USER_NOT_UPDATED_ERROR");
+  const user = await User.updateOne(data).lean().orFail(error);
+  return user;
+};
+

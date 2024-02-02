@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import IModelBase from "./base";
 
 export interface IUserBase {
@@ -5,6 +6,10 @@ export interface IUserBase {
   lastName: string;
   email: string;
   password: string;
+}
+
+export interface ILoggedInUser {
+  id: Types.ObjectId
 }
 
 export interface IUser extends IUserBase {

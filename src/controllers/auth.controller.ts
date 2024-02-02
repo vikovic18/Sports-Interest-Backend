@@ -7,12 +7,13 @@ import * as hashUtil from "../utils/hash.util";
 import * as mailService from "../services/mail.service";
 import { OtpType } from "utils/types.util";
 import logger from "utils/logger.util";
+import { Types } from "mongoose";
 
 export const handleRegisterUser =
   ({
     createUser = userService.create,
     hashPassword = hashUtil.hash,
-    generateToken = otpService.CreateOTP,
+    generateToken = otpService.create,
     sendVerificationEmail = mailService.SendMail,
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
@@ -67,11 +68,73 @@ export const handleRegisterUser =
         const errorMessage =
         (error as Error).message || "Unable to register user";
 
-        const statusCode = errMap[errorCode] || StatusCodes.INTERNAL_SERVER_ERROR;
+        const statusCode = errorCode in errMap ? errMap[errorCode] : StatusCodes.INTERNAL_SERVER_ERROR;
 
         next(createRequestError(errorMessage, (error as Error).name, statusCode));
       }
     };
+
+export const handleVerifyEmailOnRegistration =
+    ({
+      getOtp = otpService.getUnused,
+      getUser = userService.getByEmail,
+      updateUser = userService.update,
+      updateOtp = otpService.update
+    } = {}) =>
+      async (req: Request, res: Response, next: NextFunction) => {
+        try {
+          const { token } = req.body;
+          // const { email, firstName, lastName, password } = req.body;
+          if (!token || typeof token !== "string") {
+            return next(createRequestError("Invalid verification token", "INVALID_TOKEN_ERROR", StatusCodes.BAD_REQUEST));
+          }
+         
+  
+          const otp = await getOtp(token);
+
+          // if (!otp) {
+          //   return next(createRequestError("Invalid verification token or token already used", "INVALID_TOKEN_ERROR", StatusCodes.BAD_REQUEST));
+          // }
+  
+          const user = await getUser(otp.email);
+
+          // Mark email as verified
+          await updateUser({isEmailVerified: true});
+
+          // Mark OTP as used
+          await updateOtp({isUsed: true});
+
+          req.session.user = {
+            id: user._id as unknown as Types.ObjectId
+          };
+  
+          res.json({
+            status: StatusCodes.CREATED,
+            message: "Registration successful",
+            data: {
+              user: {
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+              },
+            },
+          });
+        } catch (error) {
+          const errMap: Record<string, StatusCodes> = {
+            OTP_NOT_FOUND_ERROR: StatusCodes.BAD_REQUEST,
+            USER_NOT_FOUND_ERROR: StatusCodes.BAD_REQUEST,
+            INVALID_TOKEN_ERROR: StatusCodes.BAD_REQUEST
+          };
+          const errorCode = "OTP_NOT_FOUND_ERROR";
+          const errorMessage =
+          (error as Error).message || "Unable to verify user";
+  
+          const statusCode = errorCode in errMap ? errMap[errorCode] : StatusCodes.INTERNAL_SERVER_ERROR;
+
+          next(createRequestError(errorMessage, (error as Error).name, statusCode));
+        }
+      };
 
 export const handleLoginUser =
   ({

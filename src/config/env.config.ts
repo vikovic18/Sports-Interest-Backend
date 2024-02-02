@@ -11,7 +11,10 @@ const getEnvSchema = (env = process.env) =>
     SMTP_USER: z.string(),
     SMTP_PASS: z.string(),
     SMTP_FROM: z.string(),
-    FRONTEND_ENV: z.string()
+    FRONTEND_ENV: z.string(),
+    SESSION_SECRET: z.string(),
+    SESSION_NAME: z.string()
+
   });
 
 export default getEnvSchema;

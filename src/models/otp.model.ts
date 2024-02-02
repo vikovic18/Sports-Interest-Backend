@@ -37,4 +37,4 @@ OtpSchema.method("setCode", async function (code: string): Promise<void> {
   this.token = await bcrypt.hash(code, 10);
 });
 
-export const OTP = model<IOtp>("Otp", OtpSchema);
+export const OTPModel = model<IOtp>("Otp", OtpSchema);

@@ -1,9 +1,10 @@
 import { type Request, type Response, Router } from "express";
 import authRouter from "./auth.routes";
+import { isAuthenticated } from "middlewares/auth.middleware";
 
 const router = Router();
 
-router.get("/", (_req: Request, res: Response) => {
+router.get("/", isAuthenticated, (_req: Request, res: Response) => {
   res.json({ message: "Service is up and running" });
 });
 
