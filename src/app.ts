@@ -14,7 +14,7 @@ app.use(
   morgan("combined", {
     stream: {
       write: (message: string) => {
-        logger.info(message.trim());
+        logger.http(message.trim());
       },
     },
   })

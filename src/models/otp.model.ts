@@ -2,28 +2,30 @@ import { model, Schema } from "mongoose";
 import * as bcrypt from "bcryptjs";
 
 import { OtpType } from "../utils/types.util";
-import type { IOtp } from "../interface";
+import IOtpModel from "../interface/otp.interface";
 
-const OtpSchema = new Schema<IOtp>(
+import mergeWithBaseSchema from "./base";
+
+let otpSchema = new Schema<IOtpModel>(
   {
     email: {
       type: String,
       maxlength: 255,
       trim: true,
-      lowercase: true
+      lowercase: true,
+      required: [true, "Email is required"]
     },
-    user: { type: Schema.Types.ObjectId, required: false, ref: "User" },
+    userId: { type: Schema.Types.ObjectId, required: false },
     channel: { type: String, enum: OtpType },
-    mail: { type: Schema.Types.ObjectId, ref: "Mail" },
+    mailId: { type: Schema.Types.ObjectId, ref: "Mail" },
     token: { type: String },
     failedAttempts: { type: Number, default: 0 },
     isUsed: { type: Boolean, default: false },
     expiresAt: { type: Date }
-  },
-  { timestamps: true }
+  }
 );
 
-OtpSchema.method(
+otpSchema.method(
   "validateCode",
   async function (code: string): Promise<boolean> {
     this.isUsed = await bcrypt.compare(code, this.token);
@@ -33,8 +35,12 @@ OtpSchema.method(
   }
 );
 
-OtpSchema.method("setCode", async function (code: string): Promise<void> {
+otpSchema.method("setCode", async function (code: string): Promise<void> {
   this.token = await bcrypt.hash(code, 10);
 });
 
-export const OTP = model<IOtp>("Otp", OtpSchema);
+otpSchema = mergeWithBaseSchema(otpSchema);
+
+const OtpModel = model<IOtpModel>("Otp", otpSchema);
+
+export default OtpModel;
