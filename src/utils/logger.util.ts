@@ -2,7 +2,10 @@ import winston, { format } from "winston";
 
 const { colorize, combine, timestamp, printf, splat } = format;
 
+const logLevel = process.env.LOG_LEVEL;
+
 const logger = winston.createLogger({
+  level: logLevel || "http",
   transports: [
     new winston.transports.Console({
       format: combine(

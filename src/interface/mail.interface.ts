@@ -1,13 +1,18 @@
-import type { Document, Types } from "mongoose";
+import type { Types } from "mongoose";
+import IModelBase from "./base";
 
-export interface IMail extends Document {
-  user?: Types.ObjectId
+export interface IMailBase {
+  userId: Types.ObjectId
   email: string
   subject: string
   template: string
   context: unknown
   status: string
 }
+
+interface IMailModel extends IMailBase, IModelBase {}
+
+export default IMailModel;
 
 export interface ICreateMail {
   email: string

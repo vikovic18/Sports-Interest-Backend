@@ -1,23 +1,28 @@
 import { model, Schema } from "mongoose";
 
 import { MailStatus } from "../utils/types.util";
-import type { IMail } from "../interface";
+import IMailModel from "../interface/mail.interface";
+import mergeWithBaseSchema from "./base";
 
-const MailSchema = new Schema<IMail>(
+let mailSchema = new Schema<IMailModel>(
   {
     email: {
       type: String,
       maxlength: 255,
       trim: true,
+      required: [true, "Email is required"],
       lowercase: true
     },
-    user: { type: Schema.Types.ObjectId, required: false, ref: "User" },
-    subject: { type: String },
-    template: { type: String },
+    userId: { type: Schema.Types.ObjectId, required: false},
+    subject: { type: String, default: "" },
+    template: { type: String, default: "" },
     context: { type: Object, required: false },
-    status: { type: String, enum: MailStatus, default: MailStatus.PENDING }
-  },
-  { timestamps: true }
+    status: { type: String, enum: MailStatus, default: MailStatus.MAIL_PENDING }
+  }
 );
 
-export const Mail = model<IMail>("Mail", MailSchema);
+mailSchema = mergeWithBaseSchema(mailSchema);
+
+const MailModel = model<IMailModel>("Mail", mailSchema);
+
+export default MailModel;

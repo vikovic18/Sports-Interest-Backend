@@ -6,14 +6,13 @@ import * as otpService from "../services/otp.service";
 import * as hashUtil from "../utils/hash.util";
 import * as mailService from "../services/mail.service";
 import { OtpType } from "utils/types.util";
-import logger from "utils/logger.util";
 
 export const handleRegisterUser =
   ({
     createUser = userService.create,
     hashPassword = hashUtil.hash,
-    generateToken = otpService.CreateOTP,
-    sendVerificationEmail = mailService.SendMail,
+    generateToken = otpService.create,
+    sendVerificationEmail = mailService.send,
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -27,14 +26,10 @@ export const handleRegisterUser =
 
         // todo: send user verification mail
 
-        logger.debug(`signup: ${user.email} creating OTP`);
         const otp = await generateToken({
           email: user.email,
-          channel: OtpType.SIGNUP,
+          channel: OtpType.AUTH_REGISTER,
         });
-
-        logger.debug(`signup: ${user.email} sending verification mail`);
-
         const verificationUrl = `${process.env.FRONTEND_ENV}/verify-email?token=${otp.token}`;
 
         await sendVerificationEmail({
