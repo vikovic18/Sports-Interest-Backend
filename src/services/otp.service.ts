@@ -22,18 +22,18 @@ export const create = async (data: IOtpBase, {Otp = OtpModel} = {}) => {
   return otp.toObject();
 };
 
-// export const validateToken = async (otpDocument: IOtpModel, code: string): Promise<boolean> => {
-//   const isMatch = await bcrypt.compare(code, otpDocument.token);
-//   if (!isMatch) {
-//     await OtpModel.updateOne({ _id: otpDocument.id }, { $inc: { failedAttempts: 1 } });
-//     // otpDocument.failedAttempts++;
+export const validateToken = async (otpId: StringOrObjectId, code: string, {Otp = OtpModel}): Promise<boolean> => {
+  const isMatch = await bcrypt.compare(code, otpDocument.token);
+  if (!isMatch) {
+    await OtpModel.updateOne({ _id: otpDocument.id }, { $inc: { failedAttempts: 1 } });
+    // otpDocument.failedAttempts++;
 
-//     // await otpDocument.save(); // Persist changes if validation fails
-//   } else {
-//     await OtpModel.updateOne({ _id: otpDocument.id }, { $set: { isUsed: true } });
-//   }
-//   return isMatch;
-// };
+    // await otpDocument.save(); // Persist changes if validation fails
+  } else {
+    await OtpModel.updateOne({ _id: otpDocument.id }, { $set: { isUsed: true } });
+  }
+  return isMatch;
+};
 
 export const setToken = async (otpId: StringOrObjectId, code: string, {Otp = OtpModel}= {}) => {
   const hashedCode = await bcrypt.hash(code, 10);
