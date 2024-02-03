@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { StatusCodes } from "http-status-codes";
 
 
 export const isAuthenticated = (
@@ -7,7 +8,8 @@ export const isAuthenticated = (
   next: NextFunction
 ): void => {
   if (req.session.user === undefined) {
-    res.status(401).json({
+    res.status(StatusCodes.UNAUTHORIZED).json({
+      status: "error",
       message: "Not Authorized. You must be logged in"
     });
     return;

@@ -1,19 +1,6 @@
 import type { Types } from "mongoose";
 import IModelBase from "./base";
 
-export interface IMailBase {
-  userId: Types.ObjectId
-  email: string
-  subject: string
-  template: string
-  context: unknown
-  status: string
-}
-
-interface IMailModel extends IMailBase, IModelBase {}
-
-export default IMailModel;
-
 export interface ICreateMail {
   email: string
   user?: string
@@ -28,3 +15,16 @@ export interface ISendMail {
   context: unknown
   template: string
 }
+
+export interface IMailBase {
+  userId: Types.ObjectId
+  email: string
+  subject: string
+  template: string
+  context: unknown
+  status: string
+}
+
+interface IMailModel extends IMailBase, IModelBase {}
+
+export default IMailModel;

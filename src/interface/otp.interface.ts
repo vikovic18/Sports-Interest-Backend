@@ -4,6 +4,12 @@ import type { OtpType } from "../utils/types.util";
 
 import IModelBase from "./base";
 
+export interface ICreateOtp {
+  email: string
+  userId?: Types.ObjectId
+  channel: OtpType
+}
+
 export interface IOtpBase {
   userId: Types.ObjectId
   mailId: Types.ObjectId
@@ -24,8 +30,3 @@ interface IOtpModel extends IOtp, IModelBase {}
 
 export default IOtpModel;
 
-export interface ICreateOtp {
-  email: string
-  user?: Types.ObjectId
-  channel: OtpType
-}

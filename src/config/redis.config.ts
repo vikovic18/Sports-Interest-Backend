@@ -1,7 +1,7 @@
 import Redis from "ioredis";
 import RedisStore from "connect-redis";
 
-import type { IRedis } from "../interface/config.interface";
+import type { IRedis } from "../interface/redis.interface";
 
 const redisConfig = (): IRedis => {
   try {

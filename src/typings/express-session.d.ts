@@ -6,7 +6,6 @@ import { ILoggedInUser } from "interface/user.interface";
 
 declare module "express-session" {
   interface SessionData {
-    event?: string
     user: ILoggedInUser
   }
 }

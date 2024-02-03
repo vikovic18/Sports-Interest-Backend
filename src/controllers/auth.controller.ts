@@ -100,7 +100,7 @@ export const handleVerifyEmailOnRegistration =
           };
   
           res.json({
-            status: StatusCodes.CREATED,
+            status: StatusCodes.OK,
             message: "Registration successful",
             data: {
               user: {
