@@ -6,7 +6,6 @@ import * as otpService from "../services/otp.service";
 import * as hashUtil from "../utils/hash.util";
 import * as mailService from "../services/mail.service";
 import { OtpType } from "utils/types.util";
-import logger from "utils/logger.util";
 import { Types } from "mongoose";
 
 export const handleRegisterUser =
@@ -14,7 +13,7 @@ export const handleRegisterUser =
     createUser = userService.create,
     hashPassword = hashUtil.hash,
     generateToken = otpService.create,
-    sendVerificationEmail = mailService.SendMail,
+    sendVerificationEmail = mailService.send,
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -28,14 +27,10 @@ export const handleRegisterUser =
 
         // todo: send user verification mail
 
-        logger.debug(`signup: ${user.email} creating OTP`);
         const otp = await generateToken({
           email: user.email,
-          channel: OtpType.SIGNUP,
+          channel: OtpType.AUTH_REGISTER,
         });
-
-        logger.debug(`signup: ${user.email} sending verification mail`);
-
         const verificationUrl = `${process.env.FRONTEND_ENV}/verify-email?token=${otp.token}`;
 
         await sendVerificationEmail({
@@ -91,10 +86,6 @@ export const handleVerifyEmailOnRegistration =
          
   
           const otp = await getOtp(token);
-
-          // if (!otp) {
-          //   return next(createRequestError("Invalid verification token or token already used", "INVALID_TOKEN_ERROR", StatusCodes.BAD_REQUEST));
-          // }
   
           const user = await getUser(otp.email);
 

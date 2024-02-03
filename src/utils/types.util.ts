@@ -1,10 +1,10 @@
 export enum OtpType {
-    SIGNUP = "auth.signup",
-    RESET = "auth.reset",
+  AUTH_REGISTER = "auth.register",
+  AUTH_RESET = "auth.reset",
   }
 
 export enum MailStatus {
-    PENDING = "pending",
-    SENT = "sent",
-    FAILED = "failed",
+    MAIL_PENDING = "mail.pending",
+    MAIL_SENT = "mail.sent",
+    MAIL_FAILED = "mail.failed",
   }
