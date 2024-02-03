@@ -1,15 +1,15 @@
-import bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { createServiceError } from "./error.util";
 
 export const hash = async (
-  raw: string | Buffer,
+  raw: string,
   { hasher = bcrypt.hash } = {}
 ) => {
   return await hasher(raw, 10);
 };
 
 export const compare = async (
-  raw: string | Buffer,
+  raw: string,
   hashed: string,
   { comparer = bcrypt.compare } = {}
 ) => {

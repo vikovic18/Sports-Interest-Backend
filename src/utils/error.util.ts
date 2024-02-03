@@ -1,39 +1,38 @@
-import { StatusCodes } from "http-status-codes";
+import { StatusCodes, getReasonPhrase } from "http-status-codes";
 
 class ServiceError extends Error {
   constructor(
     message: string,
-    private readonly label: `${string}_ERROR`
+    public readonly name: `${string}_ERROR`,
   ) {
     super(message);
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
-class RequestError extends Error {
+export class RequestError extends Error {
   constructor(
     message: string,
-    private readonly label: string,
-    private readonly statusCode: StatusCodes
+    public readonly name: string,
+    public readonly statusCode: StatusCodes,
   ) {
     super(message);
+    const phraseName =
+      this.statusCode &&
+      getReasonPhrase(this.statusCode).replace(/\s/g, "_").toUpperCase();
+    this.name = `${phraseName || "UNKNOWN_ERROR"}_${this.name}`;
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
-export const createServiceError = (
-  message: string,
-  label: `${string}_ERROR`
-) => {
-  return new ServiceError(message, label);
+export const createServiceError = (message: string, name: `${string}_ERROR`) => {
+  return new ServiceError(message, name);
 };
 
 export const createRequestError = (
   message: string,
   name: string,
-  statusCode?: StatusCodes
+  statusCode?: StatusCodes,
 ) => {
-  return new RequestError(
-    message,
-    name,
-    statusCode || StatusCodes.INTERNAL_SERVER_ERROR
-  );
+  return new RequestError(message, name, statusCode || StatusCodes.INTERNAL_SERVER_ERROR);
 };

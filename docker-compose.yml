@@ -28,11 +28,11 @@ services:
     restart: on-failure
     build: .
     volumes:
-      - ./src:/app/src
+      - apidata:/app/src
     ports:
       - "4000:4000"
     env_file:
-      - .env 
+      - .env
     command: >
       sh -c "yarn dev"
     depends_on:
@@ -42,3 +42,4 @@ services:
 volumes:
   mongodata:
   rabbitmqdata:
+  apidata:
