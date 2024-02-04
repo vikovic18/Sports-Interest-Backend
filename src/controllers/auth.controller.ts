@@ -4,16 +4,24 @@ import { createRequestError } from "../utils/error.util";
 import * as userService from "../services/user.service";
 import * as otpService from "../services/otp.service";
 import * as hashUtil from "../utils/hash.util";
+import * as jwtutil from "../utils/jwt.util";
 import * as mailService from "../services/mail.service";
 import { OtpType } from "utils/types.util";
+<<<<<<< HEAD
 import { Types } from "mongoose";
+=======
+import { generateCode } from "utils/utils.utils";
+>>>>>>> 71ec99f068a0b7412912fa8dd64ea444089e8865
 
 export const handleRegisterUser =
   ({
     createUser = userService.create,
     hashPassword = hashUtil.hash,
-    generateToken = otpService.create,
+    createOtp = otpService.create,
     sendVerificationEmail = mailService.send,
+    generateToken = generateCode,
+    setToken = otpService.setToken,
+    generateJWTToken = jwtutil.generateJWT
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -27,13 +35,25 @@ export const handleRegisterUser =
 
         // todo: send user verification mail
 
-        const otp = await generateToken({
+        const otp = await createOtp({
           email: user.email,
-          channel: OtpType.AUTH_REGISTER,
+          userId: user.id,
+          channel: OtpType.AUTH_REGISTER
         });
-        const verificationUrl = `${process.env.FRONTEND_ENV}/verify-email?token=${otp.token}`;
+
+        const code = generateToken();
+
+        await setToken(otp.id, code);
+
+        const token = generateJWTToken({
+          userId: user.id,
+          otp: code
+        });
+
+        const verificationUrl = `${process.env.FRONTEND_ENV}/verify-email?token=${token.accessToken}`;
 
         await sendVerificationEmail({
+          userId: user.id,
           email: user.email,
           subject: "Verify Your Email",
           context: {

@@ -1,32 +1,21 @@
-import type { Types } from "mongoose";
-
-import type { OtpType } from "../utils/types.util";
-
-import IModelBase from "./base";
-
-export interface ICreateOtp {
-  email: string
-  userId?: Types.ObjectId
-  channel: OtpType
-}
+import IModelBase, { StringOrObjectId } from "./base";
 
 export interface IOtpBase {
-  userId: Types.ObjectId
-  mailId: Types.ObjectId
+  userId?: StringOrObjectId
+  mailId?: StringOrObjectId
   email: string
-  token: string
+  token?: string
   channel: string
+}
+
+export interface IOtp extends IOtpBase {
+  userId: StringOrObjectId
+  mailId: StringOrObjectId
   isUsed: boolean | false
   expiresAt: Date
   failedAttempts: number
 }
 
-export interface IOtp extends IOtpBase {
-  setCode: (code: string) => Promise<void>
-  validateCode: (code: string) => Promise<boolean>
-}
-
 interface IOtpModel extends IOtp, IModelBase {}
 
 export default IOtpModel;
-

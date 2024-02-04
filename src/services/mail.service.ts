@@ -1,11 +1,11 @@
 import "nodemailer-express-handlebars";
-import type { ISendMail } from "../interface/mail.interface";
+import type { IMail } from "../interface/mail.interface";
 import MailModel from "../models/mail.model";
 import logger from "../utils/logger.util";
 import { MailStatus } from "../utils/types.util";
 import { createMailTransporter } from "../utils/mail.util"; // Ensure correct path
 
-export const send = async (data: ISendMail): Promise<MailStatus> => {
+export const send = async (data: IMail): Promise<MailStatus> => {
   // Use the singleton transporter; it will either create or reuse the existing one
   const transporter = await createMailTransporter();
 
