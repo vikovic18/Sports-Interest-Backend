@@ -4,6 +4,7 @@ import { createRequestError } from "../utils/error.util";
 import * as userService from "../services/user.service";
 import * as otpService from "../services/otp.service";
 import * as hashUtil from "../utils/hash.util";
+import * as jwtutil from "../utils/jwt.util";
 import * as mailService from "../services/mail.service";
 import { OtpType } from "utils/types.util";
 import { generateCode } from "utils/utils.utils";
@@ -15,7 +16,8 @@ export const handleRegisterUser =
     createOtp = otpService.create,
     sendVerificationEmail = mailService.send,
     generateToken = generateCode,
-    setToken = otpService.setToken
+    setToken = otpService.setToken,
+    generateJWTToken = jwtutil.generateJWT
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -31,20 +33,23 @@ export const handleRegisterUser =
 
         const otp = await createOtp({
           email: user.email,
+          userId: user.id,
           channel: OtpType.AUTH_REGISTER
         });
 
         const code = generateToken();
 
-        const modifiedOtp = await setToken(otp.id, code);
+        await setToken(otp.id, code);
 
-        // const otp = await generateToken({
-        //   email: user.email,
-        //   channel: OtpType.AUTH_REGISTER,
-        // });
-        const verificationUrl = `${process.env.FRONTEND_ENV}/verify-email?token=${modifiedOtp?.token}`;
+        const token = generateJWTToken({
+          userId: user.id,
+          otp: code
+        });
+
+        const verificationUrl = `${process.env.FRONTEND_ENV}/verify-email?token=${token.accessToken}`;
 
         await sendVerificationEmail({
+          userId: user.id,
           email: user.email,
           subject: "Verify Your Email",
           context: {

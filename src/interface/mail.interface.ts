@@ -1,23 +1,19 @@
-import type { Types } from "mongoose";
-import IModelBase from "./base";
+import IModelBase, { StringOrObjectId } from "./base";
 
 export interface IMailBase {
-  userId: Types.ObjectId
+  userId?: StringOrObjectId
   email: string
   subject: string
   template: string
   context: unknown
-  status: string
+  
 }
 
-export interface ISendMail {
-  email: string
-  subject: string
-  context: unknown
-  template: string
+export interface IMail extends IMailBase{
+  status?: string
 }
 
-interface IMailModel extends IMailBase, IModelBase {}
+interface IMailModel extends IMail, IModelBase {}
 
 export default IMailModel;
 

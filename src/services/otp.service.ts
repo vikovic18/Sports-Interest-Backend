@@ -1,9 +1,9 @@
 import moment from "moment";
-import * as bcrypt from "bcryptjs";
 import type { IOtpBase } from "../interface/otp.interface";
 import OtpModel from "../models/otp.model";
 import logger from "../utils/logger.util";
 import { StringOrObjectId } from "interface/base";
+import { hash } from "utils/hash.util";
 
 const otpEnvLength = process.env.OTP_MAX_ATTEMPTS;
 export const OTP_MAX_ATTEMPTS = parseInt(otpEnvLength !== undefined ? otpEnvLength : "5");
@@ -22,21 +22,9 @@ export const create = async (data: IOtpBase, {Otp = OtpModel} = {}) => {
   return otp.toObject();
 };
 
-export const validateToken = async (otpId: StringOrObjectId, code: string, {Otp = OtpModel}): Promise<boolean> => {
-  const isMatch = await bcrypt.compare(code, otpDocument.token);
-  if (!isMatch) {
-    await OtpModel.updateOne({ _id: otpDocument.id }, { $inc: { failedAttempts: 1 } });
-    // otpDocument.failedAttempts++;
-
-    // await otpDocument.save(); // Persist changes if validation fails
-  } else {
-    await OtpModel.updateOne({ _id: otpDocument.id }, { $set: { isUsed: true } });
-  }
-  return isMatch;
-};
 
 export const setToken = async (otpId: StringOrObjectId, code: string, {Otp = OtpModel}= {}) => {
-  const hashedCode = await bcrypt.hash(code, 10);
+  const hashedCode = await hash(code);
   const otp = await Otp.findByIdAndUpdate({_id: otpId}, {$set: {token: hashedCode}}, {new: true});
   return otp?.toObject();
 };

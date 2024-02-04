@@ -1,19 +1,16 @@
-import type { Types } from "mongoose";
-
-
-import IModelBase from "./base";
+import IModelBase, { StringOrObjectId } from "./base";
 
 export interface IOtpBase {
-  userId?: Types.ObjectId
-  mailId?: Types.ObjectId
+  userId?: StringOrObjectId
+  mailId?: StringOrObjectId
   email: string
   token?: string
   channel: string
 }
 
 export interface IOtp extends IOtpBase {
-  userId: Types.ObjectId
-  mailId: Types.ObjectId
+  userId: StringOrObjectId
+  mailId: StringOrObjectId
   isUsed: boolean | false
   expiresAt: Date
   failedAttempts: number

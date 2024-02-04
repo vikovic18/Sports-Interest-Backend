@@ -12,7 +12,8 @@ const getEnvSchema = (env = process.env) =>
     SMTP_PASS: z.string(),
     SMTP_FROM: z.string(),
     FRONTEND_ENV: z.string(),
-    LOG_LEVEL: z.string()
+    LOG_LEVEL: z.string(),
+    JWT_SECRET: z.string()
   });
 
 export default getEnvSchema;
