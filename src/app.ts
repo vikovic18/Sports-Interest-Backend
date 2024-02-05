@@ -7,6 +7,7 @@ import * as errorMiddleware from "./middlewares/error.middleware";
 
 const app = express();
 
+
 app.use(
   cors(),
   express.json({ limit: "10mb" }),

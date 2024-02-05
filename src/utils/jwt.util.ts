@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
-import { IJWTPayload } from "interface/jwt.interface";
+import { IJWTPayload, IJWTPayloadBase } from "interface/jwt.interface";
 
 
-export const generateJWT = (payload: IJWTPayload): IJWTPayload => {
+export const generateJWT = (payload: IJWTPayloadBase): IJWTPayload => {
   const secret = process.env.JWT_SECRET as string;
   if (!secret) {
     throw new Error("JWT secret is not defined");
@@ -13,7 +13,7 @@ export const generateJWT = (payload: IJWTPayload): IJWTPayload => {
   const accessToken = jwt.sign(
     accessTokenPayload,
     secret,
-    { expiresIn: expiresIn || "1h" } 
+    { expiresIn: expiresIn || "3d" } 
   );
 
   // Generate Refresh Token
@@ -26,8 +26,27 @@ export const generateJWT = (payload: IJWTPayload): IJWTPayload => {
   const jwtToken = {
     ...accessTokenPayload,
     accessToken,
-    refreshToken
+    refreshToken,
+    expiresIn
   };
 
   return jwtToken;
+};
+
+export const verifyJWT = (token: string): IJWTPayload => {
+  const secret = process.env.JWT_SECRET as string;
+  if (!secret) {
+    throw new Error("JWT secret is not defined");
+  }
+
+
+
+  // Generate Refresh Token
+  const payload = jwt.verify(
+    token,
+    secret
+  ) as unknown as IJWTPayload;
+
+
+  return payload;
 };
