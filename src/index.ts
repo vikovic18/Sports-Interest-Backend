@@ -7,7 +7,6 @@ import connectToDb from "./config/database.config";
 import registerConsumers from "./queues";
 import subscriber from "./queues/queue";
 import { createMailTransporter } from "utils/mail.util";
-import redisConfig from "config/redis.config";
 
 process.on("uncaughtException", (reason, promise) => {
   logger.error(`Unhandled Exception at: ${promise} reason: ${reason}`);
@@ -26,7 +25,6 @@ const startApplicationDependencies = async () => {
   try {
     await connectToDb();
     await registerConsumers();
-    redisConfig();
     await createMailTransporter();
   } catch (error) {
     const errMsg = (error as Error).message;

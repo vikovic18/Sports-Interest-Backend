@@ -5,13 +5,11 @@ import * as userService from "../services/user.service";
 import * as otpService from "../services/otp.service";
 import * as hashUtil from "../utils/hash.util";
 import * as jwtutil from "../utils/jwt.util";
+import * as authUtil from "../utils/auth.util";
 import * as mailService from "../services/mail.service";
+import * as refreshTokenService from "../services/refresh.token.service";
 import { OtpType } from "utils/types.util";
-<<<<<<< HEAD
-import { Types } from "mongoose";
-=======
 import { generateCode } from "utils/utils.utils";
->>>>>>> 71ec99f068a0b7412912fa8dd64ea444089e8865
 
 export const handleRegisterUser =
   ({
@@ -21,7 +19,8 @@ export const handleRegisterUser =
     sendVerificationEmail = mailService.send,
     generateToken = generateCode,
     setToken = otpService.setToken,
-    generateJWTToken = jwtutil.generateJWT
+    generateJWTToken = jwtutil.generateJWT,
+    getVerificationEmailUrl = authUtil.generateVerificationUrl,
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -38,7 +37,7 @@ export const handleRegisterUser =
         const otp = await createOtp({
           email: user.email,
           userId: user.id,
-          channel: OtpType.AUTH_REGISTER
+          channel: OtpType.AUTH_REGISTER,
         });
 
         const code = generateToken();
@@ -47,10 +46,11 @@ export const handleRegisterUser =
 
         const token = generateJWTToken({
           userId: user.id,
-          otp: code
+          otp: code,
+          expiresIn: "2hr"
         });
 
-        const verificationUrl = `${process.env.FRONTEND_ENV}/verify-email?token=${token.accessToken}`;
+        const verificationEmailUrl = getVerificationEmailUrl(token);
 
         await sendVerificationEmail({
           userId: user.id,
@@ -58,7 +58,7 @@ export const handleRegisterUser =
           subject: "Verify Your Email",
           context: {
             firstName: user.firstName,
-            verificationUrl,
+            verificationEmailUrl,
           },
           template: "verify-email",
         });
@@ -83,69 +83,79 @@ export const handleRegisterUser =
         const errorMessage =
         (error as Error).message || "Unable to register user";
 
-        const statusCode = errorCode in errMap ? errMap[errorCode] : StatusCodes.INTERNAL_SERVER_ERROR;
+        const statusCode =
+        errorCode in errMap
+          ? errMap[errorCode]
+          : StatusCodes.INTERNAL_SERVER_ERROR;
 
         next(createRequestError(errorMessage, (error as Error).name, statusCode));
       }
     };
 
 export const handleVerifyEmailOnRegistration =
-    ({
-      getOtp = otpService.getUnused,
-      getUser = userService.getByEmail,
-      updateUser = userService.update,
-      updateOtp = otpService.update
-    } = {}) =>
-      async (req: Request, res: Response, next: NextFunction) => {
-        try {
-          const { token } = req.body;
-          // const { email, firstName, lastName, password } = req.body;
-          if (!token || typeof token !== "string") {
-            return next(createRequestError("Invalid verification token", "INVALID_TOKEN_ERROR", StatusCodes.BAD_REQUEST));
-          }
-         
-  
-          const otp = await getOtp(token);
-  
-          const user = await getUser(otp.email);
+  ({
+    verifyJWTToken = jwtutil.verifyJWT,
+    ensureOtpTokenMatches = hashUtil.compare,
+    getOtp = otpService.get,
+    getUser = userService.getById,
+    updateOtp = otpService.update,
+    updateUser = userService.update,
+    generateJWTToken = jwtutil.generateJWT,
+    saveRefreshToken = refreshTokenService.create
+  } = {}) =>
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { token } = req.body;
 
-          // Mark email as verified
-          await updateUser({isEmailVerified: true});
+        const { userId, otp } = verifyJWTToken(token);
+        const verifiedOtp = await getOtp({
+          userId,
+          isUsed: false,
+        });
+        await ensureOtpTokenMatches(otp ?? "", verifiedOtp.token);
 
-          // Mark OTP as used
-          await updateOtp({isUsed: true});
+        const user = await getUser(verifiedOtp.userId);
 
-          req.session.user = {
-            id: user._id as unknown as Types.ObjectId
-          };
-  
-          res.json({
-            status: StatusCodes.OK,
-            message: "Registration successful",
-            data: {
-              user: {
-                id: user.id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-              },
-            },
-          });
-        } catch (error) {
-          const errMap: Record<string, StatusCodes> = {
-            OTP_NOT_FOUND_ERROR: StatusCodes.BAD_REQUEST,
-            USER_NOT_FOUND_ERROR: StatusCodes.BAD_REQUEST,
-            INVALID_TOKEN_ERROR: StatusCodes.BAD_REQUEST
-          };
-          const errorCode = "OTP_NOT_FOUND_ERROR";
-          const errorMessage =
-          (error as Error).message || "Unable to verify user";
-  
-          const statusCode = errorCode in errMap ? errMap[errorCode] : StatusCodes.INTERNAL_SERVER_ERROR;
+        // Mark email as verified
+        await updateUser(user.id, { isEmailVerified: true });
 
-          next(createRequestError(errorMessage, (error as Error).name, statusCode));
-        }
-      };
+        // Mark OTP as used
+        await updateOtp(verifiedOtp.id, { isUsed: true });
+
+        const jwtToken = generateJWTToken({
+          userId: user.id,
+        });
+
+        await saveRefreshToken({
+          userId: user.id,
+          token: jwtToken.refreshToken
+        });
+
+        res.json({
+          status: StatusCodes.OK,
+          message: "Registration successful",
+          data: {
+            accessToken: jwtToken.accessToken,
+            refreshToken: jwtToken.refreshToken,
+          },
+        });
+      } catch (error) {
+        const errMap: Record<string, StatusCodes> = {
+          OTP_NOT_FOUND_ERROR: StatusCodes.BAD_REQUEST,
+          USER_NOT_FOUND_ERROR: StatusCodes.BAD_REQUEST,
+          INVALID_TOKEN_ERROR: StatusCodes.BAD_REQUEST,
+        };
+        const errorCode = "OTP_NOT_FOUND_ERROR";
+        const errorMessage = (error as Error).message || "Unable to verify user";
+
+        const statusCode =
+        errorCode in errMap
+          ? errMap[errorCode]
+          : StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
+      }
+    };
 
 export const handleLoginUser =
   ({
