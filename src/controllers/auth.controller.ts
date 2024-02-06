@@ -126,3 +126,75 @@ export const handleLoginUser =
         );
       }
     };
+
+export const handleResendVerificationEmail =
+    ({
+      getUser = userService.getByEmail,
+      verifiedEmail = userService.verifiedEmail,
+      sendVerificationEmail = mailService.send,
+      createOtp = otpService.create,
+      generateToken = generateCode,
+      setToken = otpService.setToken,
+      generateJWTToken = jwtutil.generateJWT
+    } = {}) =>
+      async (req: Request, res: Response, next: NextFunction) => {
+        try {
+          const { email } = req.body;
+          const user = await getUser(email);
+  
+          verifiedEmail(user);
+
+          const otp = await createOtp({
+            email: user.email,
+            userId: user.id,
+            channel: OtpType.AUTH_REGISTER
+          });
+  
+          const code = generateToken();
+  
+          await setToken(otp.id, code);
+  
+          const token = generateJWTToken({
+            userId: user.id,
+            otp: code
+          });
+
+          const verificationUrl = `${process.env.FRONTEND_URI}/verify-email?token=${token.accessToken}`;
+
+          await sendVerificationEmail({
+            userId: user.id,
+            email: user.email,
+            subject: "Verify Your Email",
+            context: {
+              firstName: user.firstName,
+              verificationUrl,
+            },
+            template: "verify-email",
+          });
+  
+  
+          res.json({
+            status: StatusCodes.OK,
+            message: "Please check your email for a verification link",
+            data: {
+              user: {
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                createdAt: user.createdAt,
+              },
+            },
+          });
+        } catch (error) {
+          const errMap: Record<string, StatusCodes> = {
+            EMAIL_VERIFIED_ERROR: StatusCodes.CONFLICT,
+          };
+          const errorCode = "EMAIL_VERIFIED_ERROR";
+          const errorMessage =
+          (error as Error).message || "Unable to send verfication email";
+  
+          const statusCode = errMap[errorCode] || StatusCodes.INTERNAL_SERVER_ERROR;
+  
+          next(createRequestError(errorMessage, (error as Error).name, statusCode));
+        }
+      };

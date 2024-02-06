@@ -26,3 +26,13 @@ export const getById = async (id: string, { User = UserModel } = {}) => {
   const user = await User.findById(id).orFail(error);
   return user.toObject();
 };
+
+export const verifiedEmail = (user: { isEmailVerified: boolean }) => {
+  if (user.isEmailVerified) {
+    const error = createServiceError(
+      "Email has been verified. Please go ahead to login.",
+      "EMAIL_VERIFIED_ERROR"
+    );
+    throw error;
+  }
+};

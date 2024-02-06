@@ -17,3 +17,7 @@ export const loginSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
 });
+
+export const resendVerificationEmailSchema = Joi.object({
+  email: Joi.string().required()
+});
