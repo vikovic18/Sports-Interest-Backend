@@ -21,3 +21,7 @@ export const loginSchema = Joi.object({
 export const verifyEmailSchema = Joi.object({
   token: Joi.string().required()
 });
+
+export const accessTokenSchema = Joi.object({
+  refreshToken: Joi.string().required()
+});

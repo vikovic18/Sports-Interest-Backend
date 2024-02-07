@@ -13,3 +13,12 @@ export const create = async (
     throw createServiceError("", "REFRESHTOKEN_CANT__BE_CREATED_ERROR");
   }
 };
+
+export const get = async (
+  data: Record<string, unknown>,
+  { RefreshToken = RefreshTokenModel } = {}
+) => {
+  const error = createServiceError("", "REFRESH_TOKEN_NOT_FOUND_ERROR");
+  const refreshToken = await RefreshToken.findOne(data).sort({ createdAt: -1 }).orFail(error);
+  return refreshToken.toObject();
+};

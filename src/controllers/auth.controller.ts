@@ -47,7 +47,7 @@ export const handleRegisterUser =
         const token = generateJWTToken({
           userId: user.id,
           otp: code,
-          expiresIn: "2hr"
+          expiresIn: "2hr",
         });
 
         const verificationEmailUrl = getVerificationEmailUrl(token);
@@ -101,7 +101,7 @@ export const handleVerifyEmailOnRegistration =
     updateOtp = otpService.update,
     updateUser = userService.update,
     generateJWTToken = jwtutil.generateJWT,
-    saveRefreshToken = refreshTokenService.create
+    saveRefreshToken = refreshTokenService.create,
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -128,7 +128,7 @@ export const handleVerifyEmailOnRegistration =
 
         await saveRefreshToken({
           userId: user.id,
-          token: jwtToken.refreshToken
+          token: jwtToken.refreshToken,
         });
 
         res.json({
@@ -196,5 +196,51 @@ export const handleLoginUser =
             errMap[(error as Error).name]
           )
         );
+      }
+    };
+
+export const handleGetAccessToken =
+  ({
+    getRefreshToken = refreshTokenService.get,
+    verifyToken = jwtutil.verifyJWT,
+    generateToken = jwtutil.generateJWT,
+  } = {}) =>
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { refreshToken } = req.body;
+
+        const storedToken = await getRefreshToken({
+          userId: req.user.id,
+          token: refreshToken,
+        });
+
+        verifyToken(storedToken.token);
+        const { accessToken } = generateToken({
+          userId: storedToken.userId,
+        });
+        res.json({
+          status: true,
+          message: "Access token generated successfully",
+          data: {
+            token: {
+              accessToken,
+              refreshToken: storedToken.token,
+            },
+          },
+        });
+      } catch (error) {
+        const errMap: Record<string, StatusCodes> = {
+          REFRESH_TOKEN_NOT_FOUND_ERROR: StatusCodes.UNAUTHORIZED,
+          TOKEN_EXPIRED_OR_INVALID_ERROR: StatusCodes.UNAUTHORIZED
+        };
+        const errorCode = "REFRESH_TOKEN_NOT_FOUND_ERROR";
+        const errorMessage = (error as Error).message || "Unable to generate access token";
+
+        const statusCode =
+        errorCode in errMap
+          ? errMap[errorCode]
+          : StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
       }
     };
