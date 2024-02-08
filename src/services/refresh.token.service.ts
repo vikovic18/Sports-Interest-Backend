@@ -1,6 +1,7 @@
 import { IRefreshTokenBase } from "interface/refresh.token.interface";
 import { createServiceError } from "../utils/error.util";
 import RefreshTokenModel from "models/refresh.token.model";
+import { StringOrObjectId } from "interface/base";
 
 export const create = async (
   data: IRefreshTokenBase,
@@ -22,3 +23,13 @@ export const get = async (
   const refreshToken = await RefreshToken.findOne(data).sort({ createdAt: -1 }).orFail(error);
   return refreshToken.toObject();
 };
+
+export const deleteToken = async (
+  userId: StringOrObjectId,
+  { RefreshToken = RefreshTokenModel } = {}
+) => {
+  const error = createServiceError("", "REFRESH_TOKENS_NOT_FOUND_ERROR");
+  await RefreshToken.deleteMany({userId}).orFail(error);
+};
+
+

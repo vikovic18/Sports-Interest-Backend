@@ -37,4 +37,29 @@ authRouter.post(
   authController.handleResendVerificationEmail()
 );
 
+authRouter.post(
+  "/reset-password/request",
+  validateSchema(authSchema.forgotPasswordSchema, "body"),
+  authController.handleForgotPassword()
+);
+
+authRouter.post(
+  "/reset-password/verify",
+  validateSchema(authSchema.verifyEmailSchema, "body"),
+  authController.handleVerifyForgotPassword()
+);
+
+authRouter.post(
+  "/reset-password/",
+  validateSchema(authSchema.resetPasswordSchema, "body"),
+  authController.handleResetPassword()
+);
+
+authRouter.post(
+  "/logout/",
+  isAuthenticated,
+  authController.handleLogout()
+);
+
+
 export default authRouter;

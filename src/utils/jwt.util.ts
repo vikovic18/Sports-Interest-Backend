@@ -34,20 +34,26 @@ export const generateJWT = (payload: IJWTPayloadBase): IJWTPayload => {
   return jwtToken;
 };
 
-export const verifyJWT = (token: string): IJWTPayload => {
+export const verifyJWT = (token: string) => {
   const secret = process.env.JWT_SECRET as string;
   if (!secret) {
-    throw new Error("JWT secret is not defined");
+    throw createServiceError("JWT secret is not defined", "JWT_SECRET_NOT_DEFINED_ERROR");
   }
 
-
-
-  // Generate Refresh Token
-  const payload = jwt.verify(
-    token,
-    secret
-  ) as unknown as IJWTPayload;
-
-  if (!payload) throw createServiceError("", "TOKEN_EXPIRED_OR_INVALID_ERROR");
-  return payload;
+  try {
+    const payload = jwt.verify(token, secret) as IJWTPayload;
+    return payload;
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      // Handle specific JWT errors, e.g., 'invalid signature'
+      if (error.message === "invalid signature") {
+        throw createServiceError("Invalid token", "INVALID_TOKEN_ERROR");
+      } else {
+        throw createServiceError("Token expired or invalid", "TOKEN_EXPIRED_OR_INVALID_ERROR");
+      }
+    } else {
+      // Handle other errors
+      throw createServiceError("An unknown error occurred", "UNKNOWN_ERROR");
+    }
+  }
 };

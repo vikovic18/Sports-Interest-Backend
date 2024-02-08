@@ -111,6 +111,7 @@ export const handleVerifyEmailOnRegistration =
         const verifiedOtp = await getOtp({
           userId,
           isUsed: false,
+          channel: OtpType.AUTH_REGISTER,
         });
         await ensureOtpTokenMatches(otp ?? "", verifiedOtp.token);
 
@@ -143,8 +144,8 @@ export const handleVerifyEmailOnRegistration =
             },
             token: {
               accessToken: jwtToken.accessToken,
-              refreshToken: jwtToken.refreshToken
-            }
+              refreshToken: jwtToken.refreshToken,
+            },
           },
         });
       } catch (error) {
@@ -171,7 +172,7 @@ export const handleLoginUser =
     ensurePasswordMatches = hashUtil.compare,
     verifyEmail = userService.verifyEmail,
     generateJWTToken = jwtutil.generateJWT,
-    saveRefreshToken = refreshTokenService.create
+    saveRefreshToken = refreshTokenService.create,
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -188,9 +189,8 @@ export const handleLoginUser =
 
         await saveRefreshToken({
           userId: user.id,
-          token: jwtToken.refreshToken
+          token: jwtToken.refreshToken,
         });
-
 
         // todo: use favoured auth strategy
 
@@ -206,19 +206,18 @@ export const handleLoginUser =
             },
             token: {
               accessToken: jwtToken.accessToken,
-              refreshToken: jwtToken.refreshToken
-            }
+              refreshToken: jwtToken.refreshToken,
+            },
           },
         });
       } catch (error) {
         const errMap: Record<string, StatusCodes> = {
           EMAIL_NOT_FOUND_ERROR: StatusCodes.UNAUTHORIZED,
           HASH_MISMATCH_ERROR: StatusCodes.UNAUTHORIZED,
-          EMAIL_NOT_VERIFIED_ERROR: StatusCodes.UNAUTHORIZED
+          EMAIL_NOT_VERIFIED_ERROR: StatusCodes.UNAUTHORIZED,
         };
         const errorCode = "EMAIL_NOT_FOUND_ERROR";
-        const errorMessage =
-        (error as Error).message || "Unable to login user";
+        const errorMessage = (error as Error).message || "Unable to login user";
 
         const statusCode =
         errorCode in errMap
@@ -261,10 +260,11 @@ export const handleGetAccessToken =
       } catch (error) {
         const errMap: Record<string, StatusCodes> = {
           REFRESH_TOKEN_NOT_FOUND_ERROR: StatusCodes.UNAUTHORIZED,
-          TOKEN_EXPIRED_OR_INVALID_ERROR: StatusCodes.UNAUTHORIZED
+          TOKEN_EXPIRED_OR_INVALID_ERROR: StatusCodes.UNAUTHORIZED,
         };
         const errorCode = "REFRESH_TOKEN_NOT_FOUND_ERROR";
-        const errorMessage = (error as Error).message || "Unable to generate access token";
+        const errorMessage =
+        (error as Error).message || "Unable to generate access token";
 
         const statusCode =
         errorCode in errMap
@@ -275,73 +275,259 @@ export const handleGetAccessToken =
       }
     };
 export const handleResendVerificationEmail =
-    ({
-      getUser = userService.getByEmail,
-      verifiedEmail = userService.verifiedEmail,
-      sendVerificationEmail = mailService.send,
-      createOtp = otpService.create,
-      generateToken = generateCode,
-      setToken = otpService.setToken,
-      generateJWTToken = jwtutil.generateJWT
-    } = {}) =>
-      async (req: Request, res: Response, next: NextFunction) => {
-        try {
-          const { email } = req.body;
-          const user = await getUser(email);
-  
-          verifiedEmail(user);
+  ({
+    getUser = userService.getByEmail,
+    verifiedEmail = userService.verifiedEmail,
+    sendVerificationEmail = mailService.send,
+    createOtp = otpService.create,
+    generateToken = generateCode,
+    setToken = otpService.setToken,
+    generateJWTToken = jwtutil.generateJWT,
+    getVerificationEmailUrl = authUtil.generateVerificationUrl,
+  } = {}) =>
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { email } = req.body;
+        const user = await getUser(email);
 
-          const otp = await createOtp({
-            email: user.email,
-            userId: user.id,
-            channel: OtpType.AUTH_REGISTER
-          });
-  
-          const code = generateToken();
-  
-          await setToken(otp.id, code);
-  
-          const token = generateJWTToken({
-            userId: user.id,
-            otp: code
-          });
+        verifiedEmail(user);
 
-          const verificationUrl = `${process.env.FRONTEND_URI}/verify-email?token=${token.accessToken}`;
+        const otp = await createOtp({
+          email: user.email,
+          userId: user.id,
+          channel: OtpType.AUTH_REGISTER,
+        });
 
-          await sendVerificationEmail({
-            userId: user.id,
-            email: user.email,
-            subject: "Verify Your Email",
-            context: {
+        const code = generateToken();
+
+        await setToken(otp.id, code);
+
+        const token = generateJWTToken({
+          userId: user.id,
+          otp: code,
+        });
+
+        const verificationEmailUrl = getVerificationEmailUrl(token);
+
+        await sendVerificationEmail({
+          userId: user.id,
+          email: user.email,
+          subject: "Verify Your Email",
+          context: {
+            firstName: user.firstName,
+            verificationEmailUrl,
+          },
+          template: "verify-email",
+        });
+
+        res.json({
+          status: StatusCodes.OK,
+          message: "Please check your email for a verification link",
+          data: {
+            user: {
+              id: user.id,
               firstName: user.firstName,
-              verificationUrl,
+              lastName: user.lastName,
+              createdAt: user.createdAt,
             },
-            template: "verify-email",
-          });
-  
-  
-          res.json({
-            status: StatusCodes.OK,
-            message: "Please check your email for a verification link",
-            data: {
-              user: {
-                id: user.id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                createdAt: user.createdAt,
-              },
-            },
-          });
-        } catch (error) {
-          const errMap: Record<string, StatusCodes> = {
-            EMAIL_VERIFIED_ERROR: StatusCodes.CONFLICT,
-          };
-          const errorCode = "EMAIL_VERIFIED_ERROR";
-          const errorMessage =
-          (error as Error).message || "Unable to send verfication email";
-  
-          const statusCode = errMap[errorCode] || StatusCodes.INTERNAL_SERVER_ERROR;
-  
-          next(createRequestError(errorMessage, (error as Error).name, statusCode));
-        }
-      };
+          },
+        });
+      } catch (error) {
+        const errMap: Record<string, StatusCodes> = {
+          EMAIL_VERIFIED_ERROR: StatusCodes.CONFLICT,
+        };
+        const errorCode = "EMAIL_VERIFIED_ERROR";
+        const errorMessage =
+        (error as Error).message || "Unable to send verfication email";
+
+        const statusCode = errMap[errorCode] || StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
+      }
+    };
+
+export const handleForgotPassword =
+  ({
+    getUser = userService.getByEmail,
+    sendVerificationEmail = mailService.send,
+    createOtp = otpService.create,
+    generateToken = generateCode,
+    setToken = otpService.setToken,
+    generateJWTToken = jwtutil.generateJWT,
+    getVerificationEmailUrl = authUtil.generateVerificationUrl,
+  } = {}) =>
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { email } = req.body;
+        const user = await getUser(email);
+
+        const otp = await createOtp({
+          email: user.email,
+          userId: user.id,
+          channel: OtpType.AUTH_RESET,
+        });
+
+        const code = generateToken();
+
+        await setToken(otp.id, code);
+
+        const token = generateJWTToken({
+          userId: user.id,
+          otp: code,
+        });
+
+        const verificationEmailUrl = getVerificationEmailUrl(token);
+
+        await sendVerificationEmail({
+          userId: user.id,
+          email: user.email,
+          subject: "Reset your password",
+          context: {
+            firstName: user.firstName,
+            verificationEmailUrl,
+          },
+          template: "reset-password",
+        });
+
+        res.json({
+          status: StatusCodes.OK,
+          message:
+          "Please check your email for a verification link to reset your password",
+        });
+      } catch (error) {
+        const errMap: Record<string, StatusCodes> = {
+          EMAIL_NOT_FOUND_ERROR: StatusCodes.CONFLICT,
+        };
+        const errorCode = "EMAIL_NOT_FOUND_ERROR";
+        const errorMessage =
+        (error as Error).message || "Unable to reset password";
+
+        const statusCode = errMap[errorCode] || StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
+      }
+    };
+
+export const handleVerifyForgotPassword =
+  ({
+    verifyJWTToken = jwtutil.verifyJWT,
+    ensureOtpTokenMatches = hashUtil.compare,
+    getOtp = otpService.get,
+    updateOtp = otpService.update,
+    generateTempToken = jwtutil.generateJWT,
+  } = {}) =>
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { token } = req.body;
+
+        const { userId, otp } = verifyJWTToken(token);
+        const verifiedOtp = await getOtp({
+          userId,
+          isUsed: false,
+          channel: OtpType.AUTH_RESET,
+        });
+        await ensureOtpTokenMatches(otp ?? "", verifiedOtp.token);
+
+        // Mark OTP as used
+        await updateOtp(verifiedOtp.id, { isUsed: true });
+
+        const tempToken = generateTempToken({
+          userId,
+          expiresIn: "5m",
+        });
+
+        res.json({
+          status: StatusCodes.OK,
+          message: "Proceed to reset password",
+          data: {
+            tempToken: tempToken.accessToken,
+          },
+        });
+      } catch (error) {
+        const errMap: Record<string, StatusCodes> = {
+          OTP_NOT_FOUND_ERROR: StatusCodes.BAD_REQUEST,
+          INVALID_TOKEN_ERROR: StatusCodes.BAD_REQUEST,
+        };
+        const errorCode = "OTP_NOT_FOUND_ERROR";
+        const errorMessage =
+        (error as Error).message || "Unable to reset password";
+
+        const statusCode =
+        errorCode in errMap
+          ? errMap[errorCode]
+          : StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
+      }
+    };
+
+export const handleResetPassword =
+  ({
+    verifyJWTToken = jwtutil.verifyJWT,
+    hashPassword = hashUtil.hash,
+    updateUserPassword = userService.update,
+  } = {}) =>
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { password } = req.body;
+        const authHeader = req.headers["authorization"];
+        const token = authHeader?.split(" ")[1]; // "Bearer TOKEN"
+        const { userId } = verifyJWTToken(token ?? "");
+
+        await updateUserPassword(userId, {
+          password: await hashPassword(password),
+        });
+
+        res.json({
+          status: StatusCodes.OK,
+          message: "Password reset successfully",
+        });
+      } catch (error) {
+        const errMap: Record<string, StatusCodes> = {
+          TOKEN_EXPIRED_OR_INVALID_ERROR: StatusCodes.UNAUTHORIZED,
+          JWT_SECRET_NOT_DEFINED_ERROR: StatusCodes.UNAUTHORIZED,
+          INVALID_TOKEN_ERROR: StatusCodes.UNAUTHORIZED,
+        };
+        const errorCode = "TOKEN_EXPIRED_OR_INVALID_ERROR";
+        const errorMessage =
+        (error as Error).message || "Unable to reset password.";
+
+        const statusCode =
+        errorCode in errMap
+          ? errMap[errorCode]
+          : StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
+      }
+    };
+
+export const handleLogout =
+  ({
+    deleteRefreshTokensForUser = refreshTokenService.deleteToken,
+  } = {}) =>
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = req.user.id;
+
+        await deleteRefreshTokensForUser(userId);
+
+        res.json({
+          status: true,
+          message: "Logged out successfully",
+        });
+      } catch (error) {
+        const errMap: Record<string, StatusCodes> = {
+          REFRESH_TOKEN_NOT_FOUND_ERROR: StatusCodes.UNAUTHORIZED
+        };
+        const errorCode = "REFRESH_TOKENS_NOT_FOUND_ERROR";
+        const errorMessage =
+        (error as Error).message || "Unable to logout.";
+
+        const statusCode =
+        errorCode in errMap
+          ? errMap[errorCode]
+          : StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
+      }
+    };

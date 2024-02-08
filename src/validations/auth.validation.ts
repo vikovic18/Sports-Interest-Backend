@@ -29,3 +29,12 @@ export const verifyEmailSchema = Joi.object({
 export const accessTokenSchema = Joi.object({
   refreshToken: Joi.string().required()
 });
+
+export const forgotPasswordSchema = Joi.object({
+  email: Joi.string().required()
+});
+
+export const resetPasswordSchema = Joi.object({
+  password: Joi.string().required()
+});
+

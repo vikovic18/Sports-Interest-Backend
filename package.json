@@ -1,7 +1,7 @@
 {
-  "name": "the-akpan-startup-template",
+  "name": "torris-moe-backend",
   "version": "0.0.1",
-  "description": "Please set",
+  "description": "torris moe backend that powers the application",
   "main": "dist/index.js",
   "repository": "Please set",
   "license": "MIT",
