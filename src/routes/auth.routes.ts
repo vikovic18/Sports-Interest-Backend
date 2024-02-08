@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as authController from "../controllers/auth.controller";
 import * as authSchema from "validations/auth.validation";
 import validateSchema from "validations";
+import { isAuthenticated } from "middlewares/auth.middleware";
 
 const authRouter = Router();
 
@@ -24,10 +25,16 @@ authRouter.post(
 );
 
 authRouter.post(
+  "/access-token",
+  isAuthenticated,
+  validateSchema(authSchema.accessTokenSchema, "body"),
+  authController.handleGetAccessToken()
+);
+
+authRouter.post(
   "/resend/verify-email",
   validateSchema(authSchema.resendVerificationEmailSchema, "body"),
   authController.handleResendVerificationEmail()
 );
-
 
 export default authRouter;

@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { IJWTPayload, IJWTPayloadBase } from "interface/jwt.interface";
+import { createServiceError } from "./error.util";
 
 
 export const generateJWT = (payload: IJWTPayloadBase): IJWTPayload => {
@@ -47,6 +48,6 @@ export const verifyJWT = (token: string): IJWTPayload => {
     secret
   ) as unknown as IJWTPayload;
 
-
+  if (!payload) throw createServiceError("", "TOKEN_EXPIRED_OR_INVALID_ERROR");
   return payload;
 };
