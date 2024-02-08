@@ -1,6 +1,7 @@
 import { IUserBase } from "../interface/user.interface";
 import UserModel from "../models/user.model";
 import { createServiceError } from "../utils/error.util";
+import { StringOrObjectId } from "interface/base";
 
 export const create = async (data: IUserBase, { User = UserModel } = {}) => {
   try {
@@ -16,13 +17,16 @@ export const create = async (data: IUserBase, { User = UserModel } = {}) => {
 };
 
 export const getByEmail = async (email: string, { User = UserModel } = {}) => {
-  const error = createServiceError("", "EMAIL_NOT_FOUND_ERROR");
+  const error = createServiceError("Email not found. Try registering your account", "EMAIL_NOT_FOUND_ERROR");
   const user = await User.findOne({ email }).orFail(error);
   return user.toObject();
 };
 
-export const getById = async (id: string, { User = UserModel } = {}) => {
-  const error = createServiceError("", "EMAIL_NOT_FOUND_ERROR");
+export const getById = async (
+  id: StringOrObjectId,
+  { User = UserModel } = {}
+) => {
+  const error = createServiceError("", "USER_NOT_FOUND_ERROR");
   const user = await User.findById(id).orFail(error);
   return user.toObject();
 };
@@ -35,4 +39,28 @@ export const verifiedEmail = (user: { isEmailVerified: boolean }) => {
     );
     throw error;
   }
+};
+export const verifyEmail = (user: { isEmailVerified: boolean }) => {
+  if (!user.isEmailVerified) {
+    // Use createServiceError to create a new ServiceError instance
+    const error = createServiceError(
+      "Email not verified. Please verify your email before logging in.",
+      "EMAIL_NOT_VERIFIED_ERROR"
+    );
+    throw error;
+  }
+};
+
+export const update = async (
+  userId: StringOrObjectId,
+  data: Record<string, unknown>,
+  { User = UserModel } = {}
+) => {
+  const error = createServiceError("", "USER_NOT_UPDATED_ERROR");
+  const user = await User.findByIdAndUpdate(
+    { _id: userId },
+    { $set: data },
+    { new: true }
+  ).orFail(error);
+  return user.toObject();
 };

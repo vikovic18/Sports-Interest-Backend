@@ -20,4 +20,8 @@ export const loginSchema = Joi.object({
 
 export const resendVerificationEmailSchema = Joi.object({
   email: Joi.string().required()
+}); 
+
+export const verifyEmailSchema = Joi.object({
+  token: Joi.string().required()
 });

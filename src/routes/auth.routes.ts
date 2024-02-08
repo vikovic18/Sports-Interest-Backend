@@ -12,6 +12,12 @@ authRouter.post(
 );
 
 authRouter.post(
+  "/verify",
+  validateSchema(authSchema.verifyEmailSchema, "body"),
+  authController.handleVerifyEmailOnRegistration()
+);
+
+authRouter.post(
   "/register",
   validateSchema(authSchema.registerSchema, "body"),
   authController.handleRegisterUser()
