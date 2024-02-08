@@ -1,6 +1,7 @@
 import { IUserBase } from "../interface/user.interface";
 import UserModel from "../models/user.model";
 import { createServiceError } from "../utils/error.util";
+import { StringOrObjectId } from "interface/base";
 
 export const create = async (data: IUserBase, { User = UserModel } = {}) => {
   try {
@@ -21,8 +22,25 @@ export const getByEmail = async (email: string, { User = UserModel } = {}) => {
   return user.toObject();
 };
 
-export const getById = async (id: string, { User = UserModel } = {}) => {
-  const error = createServiceError("", "EMAIL_NOT_FOUND_ERROR");
+export const getById = async (
+  id: StringOrObjectId,
+  { User = UserModel } = {}
+) => {
+  const error = createServiceError("", "USER_NOT_FOUND_ERROR");
   const user = await User.findById(id).orFail(error);
+  return user.toObject();
+};
+
+export const update = async (
+  userId: StringOrObjectId,
+  data: Record<string, unknown>,
+  { User = UserModel } = {}
+) => {
+  const error = createServiceError("", "USER_NOT_UPDATED_ERROR");
+  const user = await User.findByIdAndUpdate(
+    { _id: userId },
+    { $set: data },
+    { new: true }
+  ).orFail(error);
   return user.toObject();
 };

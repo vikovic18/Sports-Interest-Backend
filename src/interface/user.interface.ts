@@ -1,10 +1,14 @@
-import IModelBase from "./base";
+import IModelBase, { StringOrObjectId } from "./base";
 
 export interface IUserBase {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
+}
+
+export interface ILoggedInUser {
+  id: StringOrObjectId
 }
 
 export interface IUser extends IUserBase {

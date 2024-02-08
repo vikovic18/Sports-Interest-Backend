@@ -13,6 +13,7 @@ export interface IOtp extends IOtpBase {
   mailId: StringOrObjectId
   isUsed: boolean | false
   expiresAt: Date
+  token: string
   failedAttempts: number
 }
 
