@@ -135,8 +135,16 @@ export const handleVerifyEmailOnRegistration =
           status: StatusCodes.OK,
           message: "Registration successful",
           data: {
-            accessToken: jwtToken.accessToken,
-            refreshToken: jwtToken.refreshToken,
+            user: {
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              createdAt: user.createdAt,
+            },
+            token: {
+              accessToken: jwtToken.accessToken,
+              refreshToken: jwtToken.refreshToken
+            }
           },
         });
       } catch (error) {
@@ -161,6 +169,9 @@ export const handleLoginUser =
   ({
     getUser = userService.getByEmail,
     ensurePasswordMatches = hashUtil.compare,
+    verifyEmail = userService.verifyEmail,
+    generateJWTToken = jwtutil.generateJWT,
+    saveRefreshToken = refreshTokenService.create
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -168,6 +179,18 @@ export const handleLoginUser =
         const user = await getUser(email);
 
         await ensurePasswordMatches(passwordIn, user.password);
+
+        verifyEmail(user);
+
+        const jwtToken = generateJWTToken({
+          userId: user.id,
+        });
+
+        await saveRefreshToken({
+          userId: user.id,
+          token: jwtToken.refreshToken
+        });
+
 
         // todo: use favoured auth strategy
 
@@ -181,20 +204,27 @@ export const handleLoginUser =
               lastName: user.lastName,
               createdAt: user.createdAt,
             },
+            token: {
+              accessToken: jwtToken.accessToken,
+              refreshToken: jwtToken.refreshToken
+            }
           },
         });
       } catch (error) {
         const errMap: Record<string, StatusCodes> = {
           EMAIL_NOT_FOUND_ERROR: StatusCodes.UNAUTHORIZED,
           HASH_MISMATCH_ERROR: StatusCodes.UNAUTHORIZED,
+          EMAIL_NOT_VERIFIED_ERROR: StatusCodes.UNAUTHORIZED
         };
+        const errorCode = "EMAIL_NOT_FOUND_ERROR";
+        const errorMessage =
+        (error as Error).message || "Unable to login user";
 
-        next(
-          createRequestError(
-            (error as Error).message || "Unable to login user",
-            (error as Error).name,
-            errMap[(error as Error).name]
-          )
-        );
+        const statusCode =
+        errorCode in errMap
+          ? errMap[errorCode]
+          : StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
       }
     };

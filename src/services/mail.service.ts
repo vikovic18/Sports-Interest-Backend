@@ -6,7 +6,6 @@ import { MailStatus } from "../utils/types.util";
 import { createMailTransporter } from "../utils/mail.util"; // Ensure correct path
 
 export const send = async (data: IMail): Promise<MailStatus> => {
-  // Use the singleton transporter; it will either create or reuse the existing one
   const transporter = await createMailTransporter();
 
   logger.debug(`Creating mail for ${data.email}`);
