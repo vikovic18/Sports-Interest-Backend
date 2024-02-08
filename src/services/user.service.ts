@@ -31,6 +31,15 @@ export const getById = async (
   return user.toObject();
 };
 
+export const verifiedEmail = (user: { isEmailVerified: boolean }) => {
+  if (user.isEmailVerified) {
+    const error = createServiceError(
+      "Email has been verified. Please go ahead to login.",
+      "EMAIL_VERIFIED_ERROR"
+    );
+    throw error;
+  }
+};
 export const verifyEmail = (user: { isEmailVerified: boolean }) => {
   if (!user.isEmailVerified) {
     // Use createServiceError to create a new ServiceError instance

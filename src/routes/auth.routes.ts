@@ -23,4 +23,11 @@ authRouter.post(
   authController.handleRegisterUser()
 );
 
+authRouter.post(
+  "/resend/verify-email",
+  validateSchema(authSchema.resendVerificationEmailSchema, "body"),
+  authController.handleResendVerificationEmail()
+);
+
+
 export default authRouter;
