@@ -135,8 +135,16 @@ export const handleVerifyEmailOnRegistration =
           status: StatusCodes.OK,
           message: "Registration successful",
           data: {
-            accessToken: jwtToken.accessToken,
-            refreshToken: jwtToken.refreshToken,
+            user: {
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              createdAt: user.createdAt,
+            },
+            token: {
+              accessToken: jwtToken.accessToken,
+              refreshToken: jwtToken.refreshToken
+            }
           },
         });
       } catch (error) {
@@ -161,6 +169,9 @@ export const handleLoginUser =
   ({
     getUser = userService.getByEmail,
     ensurePasswordMatches = hashUtil.compare,
+    verifyEmail = userService.verifyEmail,
+    generateJWTToken = jwtutil.generateJWT,
+    saveRefreshToken = refreshTokenService.create
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -168,6 +179,18 @@ export const handleLoginUser =
         const user = await getUser(email);
 
         await ensurePasswordMatches(passwordIn, user.password);
+
+        verifyEmail(user);
+
+        const jwtToken = generateJWTToken({
+          userId: user.id,
+        });
+
+        await saveRefreshToken({
+          userId: user.id,
+          token: jwtToken.refreshToken
+        });
+
 
         // todo: use favoured auth strategy
 
@@ -181,21 +204,28 @@ export const handleLoginUser =
               lastName: user.lastName,
               createdAt: user.createdAt,
             },
+            token: {
+              accessToken: jwtToken.accessToken,
+              refreshToken: jwtToken.refreshToken
+            }
           },
         });
       } catch (error) {
         const errMap: Record<string, StatusCodes> = {
           EMAIL_NOT_FOUND_ERROR: StatusCodes.UNAUTHORIZED,
           HASH_MISMATCH_ERROR: StatusCodes.UNAUTHORIZED,
+          EMAIL_NOT_VERIFIED_ERROR: StatusCodes.UNAUTHORIZED
         };
+        const errorCode = "EMAIL_NOT_FOUND_ERROR";
+        const errorMessage =
+        (error as Error).message || "Unable to login user";
 
-        next(
-          createRequestError(
-            (error as Error).message || "Unable to login user",
-            (error as Error).name,
-            errMap[(error as Error).name]
-          )
-        );
+        const statusCode =
+        errorCode in errMap
+          ? errMap[errorCode]
+          : StatusCodes.INTERNAL_SERVER_ERROR;
+
+        next(createRequestError(errorMessage, (error as Error).name, statusCode));
       }
     };
 
@@ -244,3 +274,74 @@ export const handleGetAccessToken =
         next(createRequestError(errorMessage, (error as Error).name, statusCode));
       }
     };
+export const handleResendVerificationEmail =
+    ({
+      getUser = userService.getByEmail,
+      verifiedEmail = userService.verifiedEmail,
+      sendVerificationEmail = mailService.send,
+      createOtp = otpService.create,
+      generateToken = generateCode,
+      setToken = otpService.setToken,
+      generateJWTToken = jwtutil.generateJWT
+    } = {}) =>
+      async (req: Request, res: Response, next: NextFunction) => {
+        try {
+          const { email } = req.body;
+          const user = await getUser(email);
+  
+          verifiedEmail(user);
+
+          const otp = await createOtp({
+            email: user.email,
+            userId: user.id,
+            channel: OtpType.AUTH_REGISTER
+          });
+  
+          const code = generateToken();
+  
+          await setToken(otp.id, code);
+  
+          const token = generateJWTToken({
+            userId: user.id,
+            otp: code
+          });
+
+          const verificationUrl = `${process.env.FRONTEND_URI}/verify-email?token=${token.accessToken}`;
+
+          await sendVerificationEmail({
+            userId: user.id,
+            email: user.email,
+            subject: "Verify Your Email",
+            context: {
+              firstName: user.firstName,
+              verificationUrl,
+            },
+            template: "verify-email",
+          });
+  
+  
+          res.json({
+            status: StatusCodes.OK,
+            message: "Please check your email for a verification link",
+            data: {
+              user: {
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                createdAt: user.createdAt,
+              },
+            },
+          });
+        } catch (error) {
+          const errMap: Record<string, StatusCodes> = {
+            EMAIL_VERIFIED_ERROR: StatusCodes.CONFLICT,
+          };
+          const errorCode = "EMAIL_VERIFIED_ERROR";
+          const errorMessage =
+          (error as Error).message || "Unable to send verfication email";
+  
+          const statusCode = errMap[errorCode] || StatusCodes.INTERNAL_SERVER_ERROR;
+  
+          next(createRequestError(errorMessage, (error as Error).name, statusCode));
+        }
+      };

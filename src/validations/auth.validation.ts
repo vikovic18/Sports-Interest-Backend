@@ -18,6 +18,10 @@ export const loginSchema = Joi.object({
   password: Joi.string().required(),
 });
 
+export const resendVerificationEmailSchema = Joi.object({
+  email: Joi.string().required()
+}); 
+
 export const verifyEmailSchema = Joi.object({
   token: Joi.string().required()
 });

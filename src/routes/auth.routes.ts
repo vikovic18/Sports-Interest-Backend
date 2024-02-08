@@ -31,4 +31,10 @@ authRouter.post(
   authController.handleGetAccessToken()
 );
 
+authRouter.post(
+  "/resend/verify-email",
+  validateSchema(authSchema.resendVerificationEmailSchema, "body"),
+  authController.handleResendVerificationEmail()
+);
+
 export default authRouter;

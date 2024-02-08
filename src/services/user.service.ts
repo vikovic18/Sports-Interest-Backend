@@ -17,7 +17,7 @@ export const create = async (data: IUserBase, { User = UserModel } = {}) => {
 };
 
 export const getByEmail = async (email: string, { User = UserModel } = {}) => {
-  const error = createServiceError("", "EMAIL_NOT_FOUND_ERROR");
+  const error = createServiceError("Email not found. Try registering your account", "EMAIL_NOT_FOUND_ERROR");
   const user = await User.findOne({ email }).orFail(error);
   return user.toObject();
 };
@@ -29,6 +29,26 @@ export const getById = async (
   const error = createServiceError("", "USER_NOT_FOUND_ERROR");
   const user = await User.findById(id).orFail(error);
   return user.toObject();
+};
+
+export const verifiedEmail = (user: { isEmailVerified: boolean }) => {
+  if (user.isEmailVerified) {
+    const error = createServiceError(
+      "Email has been verified. Please go ahead to login.",
+      "EMAIL_VERIFIED_ERROR"
+    );
+    throw error;
+  }
+};
+export const verifyEmail = (user: { isEmailVerified: boolean }) => {
+  if (!user.isEmailVerified) {
+    // Use createServiceError to create a new ServiceError instance
+    const error = createServiceError(
+      "Email not verified. Please verify your email before logging in.",
+      "EMAIL_NOT_VERIFIED_ERROR"
+    );
+    throw error;
+  }
 };
 
 export const update = async (
