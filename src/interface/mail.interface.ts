@@ -10,7 +10,7 @@ export interface IMailBase {
 }
 
 export interface IMail extends IMailBase{
-  status?: string
+  status: string
 }
 
 interface IMailModel extends IMail, IModelBase {}

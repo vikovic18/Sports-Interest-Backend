@@ -20,6 +20,7 @@ export const handleRegisterUser =
     generateToken = generateCode,
     setToken = otpService.setToken,
     generateJWTToken = jwtutil.generateJWT,
+    accessSecret = jwtutil.JWT_ACCESS_SECRET,
     getVerificationEmailUrl = authUtil.generateVerificationUrl,
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
@@ -48,7 +49,8 @@ export const handleRegisterUser =
           userId: user.id,
           otp: code,
           expiresIn: "2hr",
-        });
+        }, accessSecret);
+
 
         const verificationEmailUrl = getVerificationEmailUrl(token);
 
@@ -100,14 +102,17 @@ export const handleVerifyEmailOnRegistration =
     getUser = userService.getById,
     updateOtp = otpService.update,
     updateUser = userService.update,
-    generateJWTToken = jwtutil.generateJWT,
+    generateAccessToken = jwtutil.generateJWT,
+    generateRefreshToken = jwtutil.generateJWT,
+    accessSecret = jwtutil.JWT_ACCESS_SECRET,
+    refreshSecret = jwtutil.JWT_REFRESH_SECRET,
     saveRefreshToken = refreshTokenService.create,
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { token } = req.body;
 
-        const { userId, otp } = verifyJWTToken(token);
+        const { userId, otp } = verifyJWTToken(token, accessSecret);
         const verifiedOtp = await getOtp({
           userId,
           isUsed: false,
@@ -123,13 +128,19 @@ export const handleVerifyEmailOnRegistration =
         // Mark OTP as used
         await updateOtp(verifiedOtp.id, { isUsed: true });
 
-        const jwtToken = generateJWTToken({
+        const accessToken = generateAccessToken({
           userId: user.id,
-        });
+          expiresIn: "3d"
+        }, accessSecret);
+
+        const refreshToken = generateRefreshToken({
+          userId: user.id,
+          expiresIn: "30d"
+        }, refreshSecret);
 
         await saveRefreshToken({
           userId: user.id,
-          token: jwtToken.refreshToken,
+          token: refreshToken.token,
         });
 
         res.json({
@@ -143,8 +154,8 @@ export const handleVerifyEmailOnRegistration =
               createdAt: user.createdAt,
             },
             token: {
-              accessToken: jwtToken.accessToken,
-              refreshToken: jwtToken.refreshToken,
+              accessToken: accessToken.token,
+              refreshToken: refreshToken.token,
             },
           },
         });
@@ -171,8 +182,11 @@ export const handleLoginUser =
     getUser = userService.getByEmail,
     ensurePasswordMatches = hashUtil.compare,
     verifyEmail = userService.verifyEmail,
-    generateJWTToken = jwtutil.generateJWT,
+    generateAccessToken = jwtutil.generateJWT,
+    generateRefreshToken = jwtutil.generateJWT,
     saveRefreshToken = refreshTokenService.create,
+    accessSecret = jwtutil.JWT_ACCESS_SECRET,
+    refreshSecret = jwtutil.JWT_REFRESH_SECRET
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -183,13 +197,19 @@ export const handleLoginUser =
 
         verifyEmail(user);
 
-        const jwtToken = generateJWTToken({
+        const accessToken = generateAccessToken({
           userId: user.id,
-        });
+          expiresIn: "3d"
+        }, accessSecret);
+
+        const refreshToken = generateRefreshToken({
+          userId: user.id,
+          expiresIn: "30d"
+        }, refreshSecret);
 
         await saveRefreshToken({
           userId: user.id,
-          token: jwtToken.refreshToken,
+          token: refreshToken.token,
         });
 
         // todo: use favoured auth strategy
@@ -205,8 +225,8 @@ export const handleLoginUser =
               createdAt: user.createdAt,
             },
             token: {
-              accessToken: jwtToken.accessToken,
-              refreshToken: jwtToken.refreshToken,
+              accessToken: accessToken.token,
+              refreshToken: refreshToken.token,
             },
           },
         });
@@ -233,6 +253,8 @@ export const handleGetAccessToken =
     getRefreshToken = refreshTokenService.get,
     verifyToken = jwtutil.verifyJWT,
     generateToken = jwtutil.generateJWT,
+    accessSecret = jwtutil.JWT_ACCESS_SECRET,
+    refreshSecret = jwtutil.JWT_REFRESH_SECRET
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -243,16 +265,17 @@ export const handleGetAccessToken =
           token: refreshToken,
         });
 
-        verifyToken(storedToken.token);
-        const { accessToken } = generateToken({
+        verifyToken(storedToken.token, refreshSecret);
+        const accessToken = generateToken({
           userId: storedToken.userId,
-        });
+          expiresIn: "3d"
+        }, accessSecret);
         res.json({
           status: true,
           message: "Access token generated successfully",
           data: {
             token: {
-              accessToken,
+              accessToken: accessToken.token,
               refreshToken: storedToken.token,
             },
           },
@@ -284,6 +307,7 @@ export const handleResendVerificationEmail =
     setToken = otpService.setToken,
     generateJWTToken = jwtutil.generateJWT,
     getVerificationEmailUrl = authUtil.generateVerificationUrl,
+    accessSecret = jwtutil.JWT_ACCESS_SECRET
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -305,7 +329,8 @@ export const handleResendVerificationEmail =
         const token = generateJWTToken({
           userId: user.id,
           otp: code,
-        });
+          expiresIn: "2hr",
+        }, accessSecret);
 
         const verificationEmailUrl = getVerificationEmailUrl(token);
 
@@ -355,6 +380,7 @@ export const handleForgotPassword =
     setToken = otpService.setToken,
     generateJWTToken = jwtutil.generateJWT,
     getVerificationEmailUrl = authUtil.generateVerificationUrl,
+    accessSecret = jwtutil.JWT_ACCESS_SECRET
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -374,7 +400,8 @@ export const handleForgotPassword =
         const token = generateJWTToken({
           userId: user.id,
           otp: code,
-        });
+          expiresIn: "1hr"
+        }, accessSecret);
 
         const verificationEmailUrl = getVerificationEmailUrl(token);
 
@@ -415,12 +442,13 @@ export const handleVerifyForgotPassword =
     getOtp = otpService.get,
     updateOtp = otpService.update,
     generateTempToken = jwtutil.generateJWT,
+    accessSecret = jwtutil.JWT_ACCESS_SECRET
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { token } = req.body;
 
-        const { userId, otp } = verifyJWTToken(token);
+        const { userId, otp } = verifyJWTToken(token, accessSecret);
         const verifiedOtp = await getOtp({
           userId,
           isUsed: false,
@@ -434,13 +462,13 @@ export const handleVerifyForgotPassword =
         const tempToken = generateTempToken({
           userId,
           expiresIn: "5m",
-        });
+        }, accessSecret);
 
         res.json({
           status: StatusCodes.OK,
           message: "Proceed to reset password",
           data: {
-            tempToken: tempToken.accessToken,
+            tempToken: tempToken.token,
           },
         });
       } catch (error) {
@@ -466,13 +494,14 @@ export const handleResetPassword =
     verifyJWTToken = jwtutil.verifyJWT,
     hashPassword = hashUtil.hash,
     updateUserPassword = userService.update,
+    accessSecret = jwtutil.JWT_ACCESS_SECRET
   } = {}) =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { password } = req.body;
         const authHeader = req.headers["authorization"];
         const token = authHeader?.split(" ")[1]; // "Bearer TOKEN"
-        const { userId } = verifyJWTToken(token ?? "");
+        const { userId } = verifyJWTToken(token ?? "", accessSecret);
 
         await updateUserPassword(userId, {
           password: await hashPassword(password),

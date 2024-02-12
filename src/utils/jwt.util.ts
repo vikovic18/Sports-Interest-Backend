@@ -2,40 +2,35 @@ import jwt from "jsonwebtoken";
 import { IJWTPayload, IJWTPayloadBase } from "interface/jwt.interface";
 import { createServiceError } from "./error.util";
 
+export const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET as string;
+export const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET as string;
 
-export const generateJWT = (payload: IJWTPayloadBase): IJWTPayload => {
-  const secret = process.env.JWT_SECRET as string;
+
+export const generateJWT = (payload: IJWTPayloadBase, secret: string): IJWTPayload => {
   if (!secret) {
     throw new Error("JWT secret is not defined");
   }
-  const { expiresIn, ...accessTokenPayload } = payload;
+  const { expiresIn, ...tokenPayload } = payload;
 
-  // Generate Access Token
-  const accessToken = jwt.sign(
-    accessTokenPayload,
+  // Generate Token
+  const token = jwt.sign(
+    tokenPayload,
     secret,
-    { expiresIn: expiresIn || "3d" } 
+    { expiresIn: expiresIn } 
   );
 
-  // Generate Refresh Token
-  const refreshToken = jwt.sign(
-    accessTokenPayload,
-    secret,
-    { expiresIn: "30d" } 
-  );
+  
 
   const jwtToken = {
-    ...accessTokenPayload,
-    accessToken,
-    refreshToken,
+    ...tokenPayload,
+    token,
     expiresIn
   };
 
   return jwtToken;
 };
 
-export const verifyJWT = (token: string) => {
-  const secret = process.env.JWT_SECRET as string;
+export const verifyJWT = (token: string, secret: string) => {
   if (!secret) {
     throw createServiceError("JWT secret is not defined", "JWT_SECRET_NOT_DEFINED_ERROR");
   }
