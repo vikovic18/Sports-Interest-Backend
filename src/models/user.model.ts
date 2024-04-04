@@ -3,13 +3,9 @@ import IUserModel from "../interface/user.interface";
 import mergeWithBaseSchema from "./base";
 
 let userSchema = new Schema<IUserModel>({
-  firstName: {
+  userName: {
     type: String,
-    required: [true, "First name is required"],
-  },
-  lastName: {
-    type: String,
-    required: [true, "Last name is required"],
+    required: [true, "Username is required"],
   },
   email: {
     type: String,
@@ -25,6 +21,7 @@ let userSchema = new Schema<IUserModel>({
     type: Boolean,
     default: false,
   },
+  interests: [{ type: String }],
 });
 
 userSchema = mergeWithBaseSchema(userSchema);

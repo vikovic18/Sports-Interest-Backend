@@ -1,9 +1,10 @@
 import IModelBase from "./base";
 
 export interface IUserBase {
-  firstName: string;
+  userName: string;
   lastName: string;
   email: string;
+  interests: string[]
   password: string;
 }
 
